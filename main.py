@@ -1,0 +1,257 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Feb 28 17:08:50 2017
+
+@author: afalaize
+"""
+
+import os
+
+from pythost.readwrite.vtu2hdf import pvd2Hdf, format_data_name, dumpArrays2Hdf
+
+from pythost.readwrite.read_hdf import (HDFData, HDFTimeSerie, 
+                                        interpTimeSerieToHdf)
+from pythost.config import PVDNAME
+
+from pythost.grids.tools import buildGrid, grid2mesh
+
+from pythost.pod.tools import compute_kinetic_energy
+from pythost.pod.pod import (ts2HdfDataMatrix, dataMatrix2MeanAndFluc, 
+                             fluc2CorrMatrix, computePODBasis, 
+                             mean2MeanGradient, basis2BasisGradient)
+
+from pythost.readwrite.write_vtu import write_vtu
+
+from pythost.rom.rom import (build_rom_coefficients_A, 
+                             build_rom_coefficients_B,
+                             build_rom_coefficients_C, 
+                             build_rom_coefficients_F,
+                             ReducedOrderModel)
+                            
+import numpy as np
+
+import progressbar
+
+import matplotlib.pyplot as plt
+
+actions = {'ALL': True,
+           'vtu2hdf': False,
+           'interpolate': False,
+           'ts2data': False,
+           'data2meanAndFluc': True,
+           'fluc2Corr': True,
+           'corr2basis': True,
+           'gradients': True,
+           'coefficients': True,
+           'writeVtu': True,
+           'Thost_temporal_coeffs': True,
+           'rom': True
+           }
+
+           
+###############################################################################
+
+CONFIG = {'vtu_folder': r'F:\TESTS_THOST\cylindre2D_SCC_windows\Results',
+          'data_names_vtu': [r'Vitesse(m/s)', r'MasseVolumique(kg/m3)', r'Eta'],
+          'h': (0.01, )*3,
+          'threshold': 1e-3,
+          'delta_t': 0.1,
+          'beta': 1.,
+          'theta1': 1.,
+          'theta2': 1,
+          'load': {'imin': 0, 'imax': None, 'decim': 10},
+          }
+          
+###############################################################################
+
+CONFIG['hdf_folder'] = CONFIG['vtu_folder'] + os.sep + 'hdf5'
+CONFIG['interp_hdf_folder'] = CONFIG['vtu_folder'] + os.sep + 'hdf5_interpolated'
+CONFIG['hdf_path_dataMatrix'] = CONFIG['interp_hdf_folder'] + os.sep + 'data.hdf5'
+CONFIG['hdf_path_grid'] = CONFIG['interp_hdf_folder'] + os.sep + 'grid.hdf5'
+CONFIG['hdf_path_mean'] = CONFIG['interp_hdf_folder'] + os.sep + 'mean.hdf5'
+CONFIG['hdf_path_meanGradient'] = CONFIG['interp_hdf_folder'] + os.sep + 'meanGradient.hdf5'
+CONFIG['hdf_path_meanDeformation'] = CONFIG['interp_hdf_folder'] + os.sep + 'meanDeformation.hdf5'
+CONFIG['hdf_path_weightingMatrix'] = None
+CONFIG['hdf_path_fluc'] = CONFIG['interp_hdf_folder'] + os.sep + 'fluc.hdf5'
+CONFIG['hdf_path_corr'] = CONFIG['interp_hdf_folder'] + os.sep + 'corr.hdf5'
+CONFIG['hdf_path_podBasis'] = CONFIG['interp_hdf_folder'] + os.sep + 'basis.hdf5'
+CONFIG['hdf_path_podBasisGradient'] = CONFIG['interp_hdf_folder'] + os.sep + 'basisGradient.hdf5'
+CONFIG['hdf_path_A'] = CONFIG['interp_hdf_folder'] + os.sep + 'coeffs_A.hdf5'
+CONFIG['hdf_path_B'] = CONFIG['interp_hdf_folder'] + os.sep + 'coeffs_B.hdf5'
+CONFIG['hdf_path_C'] = CONFIG['interp_hdf_folder'] + os.sep + 'coeffs_C.hdf5'
+CONFIG['hdf_path_F'] = CONFIG['interp_hdf_folder'] + os.sep + 'coeffs_F.hdf5'
+CONFIG['vtu_path_podBasis'] = CONFIG['interp_hdf_folder'] + os.sep + 'basis.vtu'
+CONFIG['hdf_path_Thost_temporal_coeffs'] = CONFIG['interp_hdf_folder'] + os.sep + 'Thost_temporal_coeffs.hdf5'
+
+###############################################################################
+
+def convert_vtu2hdf():
+    pvd_path = CONFIG['vtu_folder'] + os.sep + PVDNAME
+    pvd2Hdf(pvd_path, CONFIG['hdf_folder'], CONFIG['data_names_vtu'], 
+            **CONFIG['load'])
+
+    
+###############################################################################
+
+def interpolate_data_over_regular_grid():
+    TS = HDFTimeSerie(CONFIG['hdf_folder'])
+    TS.openAllFiles()
+    grid = buildGrid(TS.data[0].getMeshMinMax(), CONFIG['h'])
+    shape = grid.shape
+    mesh = grid2mesh(grid)
+    grid_h = list()
+    for i, xi in enumerate(mesh.T):
+        grid_h.append(max(np.diff(xi)))
+    dumpArrays2Hdf([mesh, np.array(shape).reshape((4, 1)), np.array(grid_h).reshape((3, 1))], 
+                    ['mesh', 'original_shape', 'h'], CONFIG['hdf_path_grid'])
+    interpTimeSerieToHdf(TS, mesh, CONFIG['interp_hdf_folder'])
+    TS.closeAllFiles()
+
+    
+###############################################################################
+
+def form_data_matrix():
+    print('Form data matrix')
+    TS = HDFTimeSerie(CONFIG['interp_hdf_folder'])
+    ts2HdfDataMatrix(TS, format_data_name(CONFIG['data_names_vtu'][0]), 
+                     CONFIG['hdf_path_dataMatrix'], **CONFIG['load'])
+    data = HDFData(CONFIG['hdf_path_dataMatrix'], openFile=True)
+    e = compute_kinetic_energy(data.get_single_data())
+    plt.plot(e, 'o:')
+    plt.title('Energie cinetique')
+
+    
+###############################################################################
+
+def split_mean_and_fluc():
+    print('Split mean from fluctuating velocity')
+    dataMatrix2MeanAndFluc(CONFIG['hdf_path_dataMatrix'], 
+                           CONFIG['hdf_path_mean'], CONFIG['hdf_path_fluc'])
+    
+    
+###############################################################################
+
+def form_correlation_matrix():
+    print('Form correlation matrix')
+    fluc2CorrMatrix(CONFIG['hdf_path_fluc'], CONFIG['hdf_path_corr'],
+                    hdf_path_weightingMatrix=None)
+    
+    
+###############################################################################
+
+def form_pod_basis():
+    print('Form pod basis')
+    computePODBasis(CONFIG['hdf_path_corr'], CONFIG['hdf_path_fluc'], 
+                    CONFIG['hdf_path_podBasis'], threshold=CONFIG['threshold'])
+    
+    
+
+###############################################################################
+
+def form_gradients():
+    print('Form mean gradient')
+    mean2MeanGradient(CONFIG['hdf_path_mean'], CONFIG['hdf_path_meanGradient'],
+                      CONFIG['hdf_path_grid'])
+    print('Form basis gradient')
+    basis2BasisGradient(CONFIG['hdf_path_podBasis'], CONFIG['hdf_path_podBasisGradient'],
+                        CONFIG['hdf_path_grid'])
+
+    
+###############################################################################
+
+def build_coefficients():
+    print('Form ROM coefficients')
+    build_rom_coefficients_A(CONFIG['hdf_path_podBasis'],
+                             CONFIG['hdf_path_A'])
+    
+    build_rom_coefficients_B(CONFIG['hdf_path_podBasis'],
+                             CONFIG['hdf_path_podBasisGradient'],
+                             CONFIG['hdf_path_mean'], 
+                             CONFIG['hdf_path_meanGradient'],
+                             CONFIG['hdf_path_B'])
+    
+    build_rom_coefficients_C(CONFIG['hdf_path_podBasis'],
+                             CONFIG['hdf_path_podBasisGradient'],
+                             CONFIG['hdf_path_C'])
+    
+    build_rom_coefficients_F(CONFIG['hdf_path_podBasis'],
+                             CONFIG['hdf_path_podBasisGradient'],
+                             CONFIG['hdf_path_mean'], 
+                             CONFIG['hdf_path_meanGradient'],
+                             CONFIG['hdf_path_F'])
+###############################################################################
+
+def export_pod_basis_to_vtu():
+    print('write vtu for pod basis')    
+    basis = HDFData(CONFIG['hdf_path_podBasis'], openFile=True)
+    grid = HDFData(CONFIG['hdf_path_grid'], openFile=True)
+    write_vtu(grid.mesh[:], grid.original_shape,
+              [data[:, :] for data in basis.get_single_data().swapaxes(0, 1)], 
+              'testData', CONFIG['vtu_path_podBasis'])
+    basis.closeHdfFile()
+    grid.closeHdfFile()
+
+
+###############################################################################
+
+
+def compute_Thost_temporal_coeffs():
+    HDFbasis = HDFData(CONFIG['hdf_path_podBasis'], openFile=True)
+    basis = HDFbasis.get_single_data()
+    HDFbasis.closeHdfFile()
+    
+    fluct = HDFData(CONFIG['hdf_path_fluc'], openFile=True)
+    
+    def compute_coeff(u):
+        return np.einsum('mc,mic->i', u, basis)
+        
+    nt = fluct.vitesse.shape[1]
+    temporal_coeffs = list()
+    bar = progressbar.ProgressBar(widgets=[progressbar.Timer(), ' ',
+                                       progressbar.Bar(), ' (', 
+                                       progressbar.ETA(), ')\n', ])
+
+    for i in bar(range(nt)): 
+        temporal_coeffs.append(compute_coeff(fluct.vitesse[:, i, :]))
+    
+    fluct.closeHdfFile()  
+    dumpArrays2Hdf([np.array(temporal_coeffs)], 
+                    ['coeffs'], 
+                    CONFIG['hdf_path_Thost_temporal_coeffs'])    
+    
+    
+###############################################################################
+
+if __name__ is '__main__':
+    if actions['vtu2hdf'] or actions['ALL']:
+        convert_vtu2hdf()
+    if actions['interpolate'] or actions['ALL']:
+        interpolate_data_over_regular_grid()
+    if actions['ts2data'] or actions['ALL']:
+        form_data_matrix()
+    if actions['data2meanAndFluc'] or actions['ALL']:
+        split_mean_and_fluc()
+    if actions['fluc2Corr'] or actions['ALL']:
+        form_correlation_matrix()
+    if actions['corr2basis'] or actions['ALL']:
+        form_pod_basis()
+    if actions['gradients'] or actions['ALL']:
+        form_gradients()
+    if actions['coefficients'] or actions['ALL']:
+        build_coefficients()
+    if actions['writeVtu'] or actions['ALL']:
+        export_pod_basis_to_vtu()
+    if actions['Thost_temporal_coeffs'] or actions['ALL']:
+        compute_Thost_temporal_coeffs()
+    if actions['rom'] or actions['ALL']:
+        rom = ReducedOrderModel(CONFIG)
+        rom.run(dt=CONFIG['delta_t'], tend=30., istart=None, beta=CONFIG['beta'], 
+                theta1=CONFIG['theta1'], theta2=CONFIG['theta2'])
+        for i in range(10):
+            plt.figure()
+            plt.plot(rom.times[:5], rom.c_rom(i)[:5], label='rom')
+            plt.plot(rom.times[:5], rom.c_fom(i)[:5], label='fom')
+            plt.title(str(i))
+            plt.legend()
+            plt.show()
+ 
