@@ -134,7 +134,7 @@ def writeText2Hdf(hdf_file, text, data_name):
         data_storage.append(data[None])
         
     
-def vtu2Hdf(vtu_path, hdf_path, data_names):
+def vtu2Hdf(vtu_path, hdf_path, data_names, nc=3):
     """
     Read data from a .vtu file and write them to a .hdf5 file.
     
@@ -178,13 +178,25 @@ def vtu2Hdf(vtu_path, hdf_path, data_names):
         
     # plus a call to the write function for the mesh
     mesh_text = getCoordinatesFromElementTree(tree)
-    writeText2Hdf(hdf_file, mesh_text, 'mesh')
+    
+    # the number of components is not correct so we select first 2 values in each line
+    new_mesh_text = ""
+    for l in mesh_text.splitlines():
+        elts = l.split(' ')[:2]
+        try:
+            new_line = ('{} '*nc).format(*elts)[:-1] + '\n'
+            new_mesh_text += new_line
+        except IndexError:
+            pass
+    new_mesh_text = new_mesh_text[:-1]
+    writeText2Hdf(hdf_file, new_mesh_text, 'mesh')
 
     # close the hdf file
     hdf_file.close()
 
 
-def pvd2Hdf(pvd_path, hdf_folder, data_names, imin=None, imax=None, decim=None):
+def pvd2Hdf(pvd_path, hdf_folder, data_names, nc=3, 
+            imin=None, imax=None, decim=None):
     """
     Convert data from all .vtu files listed in a .pvd file to .hdf5 files.
     
@@ -246,7 +258,7 @@ def pvd2Hdf(pvd_path, hdf_folder, data_names, imin=None, imax=None, decim=None):
         if (imin <= i < imax) and ((i-imin) % decim == 0):
             print('Convert vtu to hdf5 {}/{}.'.format(i+1-imin, imax-imin))
             hdf_path = hdf_folder + os.sep + vtu_path[:-3].split(os.sep)[-1] + 'hdf5'
-            vtu2Hdf(vtu_path, hdf_path, data_names)
+            vtu2Hdf(vtu_path, hdf_path, data_names, nc=nc)
             listOfHdfFiles.write('{} {}\n'.format(listOfTimes[i], hdf_path))
 
     listOfHdfFiles.close()     
