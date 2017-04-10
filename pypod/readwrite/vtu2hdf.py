@@ -180,7 +180,7 @@ def vtu2Hdf(vtu_path, hdf_path, data_names, nc=3):
     mesh_text = getCoordinatesFromElementTree(tree)
     
     # the number of components is not correct so we select first 2 values in each line
-    new_mesh_text = ""
+    new_mesh_text = "\n"
     for l in mesh_text.splitlines():
         elts = l.split(' ')[:2]
         try:

@@ -35,9 +35,9 @@ import progressbar
 import matplotlib.pyplot as plt
 
 actions = {'ALL': False,
-           'vtu2hdf': True,
+           'vtu2hdf': False,
            'interpolate': False,
-           'ts2data': False,
+           'ts2data': True,
            'data2meanAndFluc': False,
            'fluc2Corr': False,
            'corr2basis': False,
@@ -97,13 +97,15 @@ def convert_vtu2hdf():
 def interpolate_data_over_regular_grid():
     TS = HDFTimeSerie(CONFIG['hdf_folder'])
     TS.openAllFiles()
+    
+    # A regular (1+N)-dimensional grid. E.g with N=3, grid[c, i, j, k] is the component ‘c’ of the coordinates of the point at position (i, j, k).
     grid = buildGrid(TS.data[0].getMeshMinMax(), CONFIG['h'])
     shape = grid.shape
     mesh = grid2mesh(grid)
     grid_h = list()
     for i, xi in enumerate(mesh.T):
         grid_h.append(max(np.diff(xi)))
-    dumpArrays2Hdf([mesh, np.array(shape).reshape((4, 1)), np.array(grid_h).reshape((3, 1))], 
+    dumpArrays2Hdf([mesh, np.array(shape).reshape((CONFIG['nc']+1, 1)), np.array(grid_h).reshape((CONFIG['nc'], 1))], 
                     ['mesh', 'original_shape', 'h'], CONFIG['hdf_path_grid'])
     interpTimeSerieToHdf(TS, mesh, CONFIG['interp_hdf_folder'])
     TS.closeAllFiles()
