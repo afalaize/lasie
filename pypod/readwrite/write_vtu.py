@@ -18,18 +18,19 @@ from ..grids.tools import buildGrid, grid2mesh
 
 def setPoints(vtkUnstructuredGrid, mesh):
     nx, nc = mesh.shape
-
+    
     vtkPoints = vtk.vtkPoints()
     vtkPoints.SetNumberOfPoints(nx)
 
     for i, x in enumerate(mesh):
-        vtkPoints.InsertPoint(i, *x)
+        vtkPoints.InsertPoint(i, *(list(x) + [0,]))
         
     vtkUnstructuredGrid.SetPoints(vtkPoints)
 
     
 def insertCells(vtkUnstructuredGrid, shape):
-    nc, nx, ny, nz = shape
+    nc, nx, ny = shape
+    nz = 1      
     for i in range(nx-1):
         for j in range(ny-1):
             for k in range(nz-1):
@@ -106,7 +107,8 @@ n_components).
         vtkFloatArray.SetNumberOfTuples(nx)
         vtkFloatArray.SetName(data_name+str(i+1))
         for j, dd in enumerate(d):
-            vtkFloatArray.InsertTuple3(j, *dd)
+            ddd = list(dd) + [0, ]
+            vtkFloatArray.InsertTuple3(j, *ddd)
             vtkUnstructuredGrid.GetPointData().AddArray(vtkFloatArray)
             vtkUnstructuredGrid.GetPointData().SetActiveVectors(data_name+str(i+1))
 

@@ -34,16 +34,16 @@ import progressbar
 
 import matplotlib.pyplot as plt
 
-actions = {'ALL': False,
+actions = {'ALL': True,
            'vtu2hdf': False,
            'interpolate': False,
-           'ts2data': True,
+           'ts2data': False,
            'data2meanAndFluc': False,
            'fluc2Corr': False,
            'corr2basis': False,
            'gradients': False,
            'coefficients': False,
-           'writeVtu': False,
+           'writeVtu': True,
            'Thost_temporal_coeffs': False,
            'rom': False
            }
@@ -60,7 +60,7 @@ CONFIG = {'vtu_folder': r'F:\TESTS_THOST\cylindre2D_SCC_windows\Results',
           'beta': 1.,
           'theta1': 1.,
           'theta2': 1,
-          'load': {'imin': 100, 'imax': 1000, 'decim': 50},
+          'load': {'imin': 0, 'imax': None, 'decim': 1},
           }
           
 ###############################################################################

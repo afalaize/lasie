@@ -67,8 +67,8 @@ def ts2HdfDataMatrix(ts, data_name, hdf_path, imin=0, imax=None, decim=1.):
     if imax is None:
         imax = float('Inf')
     for i, d in enumerate(ts.data):
-        if imin <= i < imax and i%decim == 0:
-            dataL.append(getattr(d, data_name)[:][:, np.newaxis, :])
+        #if imin <= i < imax and i%decim == 0:
+        dataL.append(getattr(d, data_name)[:][:, np.newaxis, :])
     data = np.concatenate(dataL, axis=1)
     dumpArrays2Hdf([data, ], [data_name, ], hdf_path)
     
