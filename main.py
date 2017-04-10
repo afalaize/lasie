@@ -7,22 +7,22 @@ Created on Tue Feb 28 17:08:50 2017
 
 import os
 
-from pythost.readwrite.vtu2hdf import pvd2Hdf, format_data_name, dumpArrays2Hdf
+from pypod.readwrite.vtu2hdf import pvd2Hdf, format_data_name, dumpArrays2Hdf
 
-from pythost.readwrite.read_hdf import (HDFData, HDFTimeSerie, 
+from pypod.readwrite.read_hdf import (HDFData, HDFTimeSerie, 
                                         interpTimeSerieToHdf)
-from pythost.config import PVDNAME
+from pypod.config import PVDNAME
 
-from pythost.grids.tools import buildGrid, grid2mesh
+from pypod.grids.tools import buildGrid, grid2mesh
 
-from pythost.pod.tools import compute_kinetic_energy
-from pythost.pod.pod import (ts2HdfDataMatrix, dataMatrix2MeanAndFluc, 
+from pypod.pod.tools import compute_kinetic_energy
+from pypod.pod.pod import (ts2HdfDataMatrix, dataMatrix2MeanAndFluc, 
                              fluc2CorrMatrix, computePODBasis, 
                              mean2MeanGradient, basis2BasisGradient)
 
-from pythost.readwrite.write_vtu import write_vtu
+from pypod.readwrite.write_vtu import write_vtu
 
-from pythost.rom.rom import (build_rom_coefficients_A, 
+from pypod.rom.rom import (build_rom_coefficients_A, 
                              build_rom_coefficients_B,
                              build_rom_coefficients_C, 
                              build_rom_coefficients_F,
@@ -34,18 +34,18 @@ import progressbar
 
 import matplotlib.pyplot as plt
 
-actions = {'ALL': True,
-           'vtu2hdf': False,
+actions = {'ALL': False,
+           'vtu2hdf': True,
            'interpolate': False,
            'ts2data': False,
-           'data2meanAndFluc': True,
-           'fluc2Corr': True,
-           'corr2basis': True,
-           'gradients': True,
-           'coefficients': True,
-           'writeVtu': True,
-           'Thost_temporal_coeffs': True,
-           'rom': True
+           'data2meanAndFluc': False,
+           'fluc2Corr': False,
+           'corr2basis': False,
+           'gradients': False,
+           'coefficients': False,
+           'writeVtu': False,
+           'Thost_temporal_coeffs': False,
+           'rom': False
            }
 
            
@@ -56,10 +56,11 @@ CONFIG = {'vtu_folder': r'F:\TESTS_THOST\cylindre2D_SCC_windows\Results',
           'h': (0.01, )*3,
           'threshold': 1e-3,
           'delta_t': 0.1,
+          'nc': 2,
           'beta': 1.,
           'theta1': 1.,
           'theta2': 1,
-          'load': {'imin': 0, 'imax': None, 'decim': 10},
+          'load': {'imin': 100, 'imax': 1000, 'decim': 50},
           }
           
 ###############################################################################
@@ -87,7 +88,7 @@ CONFIG['hdf_path_Thost_temporal_coeffs'] = CONFIG['interp_hdf_folder'] + os.sep 
 
 def convert_vtu2hdf():
     pvd_path = CONFIG['vtu_folder'] + os.sep + PVDNAME
-    pvd2Hdf(pvd_path, CONFIG['hdf_folder'], CONFIG['data_names_vtu'], 
+    pvd2Hdf(pvd_path, CONFIG['hdf_folder'], CONFIG['data_names_vtu'], nc=CONFIG['nc'],
             **CONFIG['load'])
 
     
