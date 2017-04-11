@@ -13,78 +13,6 @@ from ..readwrite.vtu2hdf import dumpArrays2Hdf
 from scipy.optimize import root
 import progressbar
 
-def build_rom_coefficients_A(hdf_path_podBasis, hdf_path_A):
-    """
-    """
-    basis = HDFData(hdf_path_podBasis, openFile=True)
-    array_a = a(basis.get_single_data())
-    dumpArrays2Hdf([array_a, ], ['a', ], hdf_path_A)
-    basis.closeHdfFile()
-
-
-def build_rom_coefficients_B(hdf_path_podBasis, hdf_path_podBasisGradient,
-                             hdf_path_mean, hdf_path_meanGradient, hdf_path_B):
-    """
-    """
-    basis = HDFData(hdf_path_podBasis, openFile=True)
-    basis_gradient = HDFData(hdf_path_podBasisGradient, openFile=True)
-    mean = HDFData(hdf_path_mean, openFile=True)
-    mean_gradient = HDFData(hdf_path_meanGradient, openFile=True)
-
-    array_b_bar = b_bar(basis.get_single_data(),
-                        basis_gradient.get_single_data(),
-                        mean.get_single_data(),
-                        mean_gradient.get_single_data())
-
-    array_b_tilde = b_tilde(basis_gradient.get_single_data())
-
-    dumpArrays2Hdf([array_b_bar, array_b_tilde], ['b_bar', 'b_tilde'],
-                   hdf_path_B)
-
-    for hdf in [basis, basis_gradient, mean, mean_gradient]:
-        hdf.closeHdfFile()
-
-
-def build_rom_coefficients_C(hdf_path_podBasis, hdf_path_podBasisGradient,
-                             hdf_path_C):
-    """
-    """
-    basis = HDFData(hdf_path_podBasis, openFile=True)
-    basis_gradient = HDFData(hdf_path_podBasisGradient, openFile=True)
-
-    array_C = c(basis.get_single_data(), basis_gradient.get_single_data())
-    dumpArrays2Hdf([array_C, ], ['c', ], hdf_path_C)
-    basis.closeHdfFile()
-    basis_gradient.closeHdfFile()
-
-
-def build_rom_coefficients_F(hdf_path_podBasis, hdf_path_podBasisGradient,
-                             hdf_path_mean, hdf_path_meanGradient,
-                             hdf_path_F, hdf_path_source=None):
-    """
-    """
-    basis = HDFData(hdf_path_podBasis, openFile=True)
-    basis_gradient = HDFData(hdf_path_podBasisGradient, openFile=True)
-    mean = HDFData(hdf_path_mean, openFile=True)
-    mean_gradient = HDFData(hdf_path_meanGradient, openFile=True)
-    if hdf_path_source is not None:
-        source = HDFData(hdf_path_source, openFile=True)
-        array_f_bar = f_bar(basis.get_single_data(), source.get_single_data())
-    else:
-        array_f_bar = f_bar(basis.get_single_data())
-
-    array_f_tilde = f_tilde(mean_gradient.get_single_data(),
-                            basis_gradient.get_single_data())
-
-    array_f_hat = f_hat(mean.get_single_data(),
-                        mean_gradient.get_single_data(),
-                        basis.get_single_data())
-
-    dumpArrays2Hdf([array_f_bar, array_f_tilde, array_f_hat],
-                   ['f_bar', 'f_tilde', 'f_hat'], hdf_path_F)
-
-    for hdf in [basis, basis_gradient, mean, mean_gradient]:
-        hdf.closeHdfFile()
 
 
 class ReducedOrderModel(object):
@@ -133,56 +61,50 @@ class ReducedOrderModel(object):
         """
         return len(self.ts.times)
 
-    def rho(self, t):
-        return self.ts.time_interp('massevolumique', t)[:, 0]
+    def rho(self):
+        return self.ts.data[0].massevolumique[:].flatten()[0]
 
-    def mu(self, t):
-        return self.ts.time_interp('eta', t)[:, 0]
+    def mu(self):
+        return self.ts.data[0].eta[:].flatten()[0]
 
-    def A(self, t):
-        return np.einsum('m,mij->ij',
-                         self.temp_rho,
-                         self.A_coeffs.a[:])
+    def A(self):
+        return self.A_coeffs.get_single_data()
 
-    def B(self, t):
-        return (np.einsum('m,mij->ij', self.temp_rho, self.B_coeffs.b_bar[:]) +
-                np.einsum('m,mij->ij', self.temp_mu, self.B_coeffs.b_tilde[:]))
+    def B(self):
+        return self.B_coeffs.get_single_data()
 
-    def C(self, t):
-        return np.einsum('m,mijk->ijk', self.temp_rho, self.C_coeffs.c[:])
+    def C(self):
+        return self.C_coeffs.get_single_data()
 
-    def F(self, t):
+    def F(self):
         """
         """
-        return (self.F_coeffs.f_bar[:] +
-                np.einsum('m,mi->i', self.temp_rho, self.F_coeffs.f_hat[:]) +
-                np.einsum('m,mi->i', self.temp_mu, self.F_coeffs.f_tilde[:]))
+        return self.F_coeffs.get_single_data()
 
-    def imp_func(self, delta_coeffs, coeffs, t, delta_t, beta, theta1, theta2):
-        tA = np.einsum('ij,j->i', self.temp_A, delta_coeffs)/delta_t
-        tB = np.einsum('ij,j->i', self.temp_B, coeffs+beta*delta_coeffs)
+    def imp_func(self, delta_coeffs, coeffs, t, delta_t, theta):
+        tA = np.einsum('ij,j->i', self.A(), delta_coeffs)/delta_t
+        tB = np.einsum('ij,j->i', self.B(), coeffs+theta*delta_coeffs)
         tC = np.einsum('ijk,j,k->i',
-                       self.temp_C,
-                       coeffs+theta1*delta_coeffs,
-                       coeffs+theta2*delta_coeffs)
-        tF = self.temp_F
-        return tA + tB + tC - tF
+                       self.C(),
+                       coeffs+theta*delta_coeffs,
+                       coeffs+theta*delta_coeffs)
+        tF = self.F()
+        return tA + tB + tC + tF
 
-    def jac_imp_func(self, delta_coeffs, coeffs, t, delta_t, beta, theta1, theta2):
-        tA = self.temp_A/delta_t
-        tB = beta*self.temp_B
+    def jac_imp_func(self, delta_coeffs, coeffs, t, delta_t, theta):
+        tA = self.A()/delta_t
+        tB = theta*self.B()
         tC1 = np.einsum('jl,k->ljk',
                         np.eye(self.npod()),
-                        coeffs + theta2*delta_coeffs)
+                        coeffs + theta*delta_coeffs)
         tC2 = np.einsum('kl,j->ljk',
                         np.eye(self.npod()),
-                        coeffs + theta1*delta_coeffs)
-        tC = np.einsum('ijk,ljk->il', self.temp_C, theta1*tC1 + theta2*tC2)
+                        coeffs + theta*delta_coeffs)
+        tC = np.einsum('ijk,ljk->il', self.C(), theta*tC1 + theta*tC2)
         return tA + tB + tC
 
     def run(self, dt=None,
-            tend=None, istart=None,
-            beta=1., theta1=1., theta2=1.):
+            tend=None, istart=None, theta=.5):
 
         if istart is None:
             istart = 0
@@ -209,17 +131,13 @@ class ReducedOrderModel(object):
                                                progressbar.Bar(), ' (',
                                                progressbar.ETA(), ')\n', ])
 
-        for name in ['rho', 'mu', 'A', 'B', 'C', 'F']:
-            print('init ' + name + '...')
-            setattr(self, 'temp_'+name, getattr(self, name)(self.tstart))
-
         for i in bar(range(len(self.times))):
             t = self.times[i]
-            args = (self.coeffs[-1], t, dt, beta, theta1, theta2)
+            args = (self.coeffs[-1], t, dt, theta)
             res = root(self.imp_func,
                        delta_coeff,
                        args,
-                       jac = self.jac_imp_func)
+                       jac=self.jac_imp_func)
             if not res.success:
                 s = 'Convergence issue at time t={} (index {}):\n    {}'
                 print(s.format(t, i, res.message))
@@ -242,7 +160,7 @@ class ReducedOrderModel(object):
 ###############################################################################
 
 
-def a(phi):
+def A(phi):
     """
     Return the coefficients array A[i, j] = phi[m, i, c]*phi[m, j, c]
     with dims (npod, npod)
@@ -263,28 +181,29 @@ def a(phi):
     return np.einsum('mic,mjc->ij', phi, phi)
 
 
+def B(phi, grad_phi, u_moy, grad_u_moy, mu, rho):
 
-    def b_bar(phi, grad_phi, u_moy, grad_u_moy):
+    def B_bar():
         """
         Return the coefficients array b_bar with dims (npod, npod).
-    
+
         Inputs
         -------
         phi : array with dims (nx, npod, nc)
             POD basis.
-    
+
         grad_phi : array with dims (nx, npod, nc, nc)
             Gradient of POD basis.
-    
+
         u_moy : array with dims (nx, nc)
             Mean velocity.
-    
+
         grad_u_moy : array with dims (nx, nc, nc)
             gradient of mean velocity
-    
+
         Output
         -------
-    
+
         b_bar : array with dims (npod, npod)
             b_bar[i, j] =  (u_moy[m, d]*grad_phi[m, j, d, c] +
                             phi[m, j, d]*grad_u_moy[m, d, c])*phi[m, i , c]
@@ -292,64 +211,36 @@ def a(phi):
         t1 = np.einsum('md,mjdc->mjc', u_moy, grad_phi)
         t2 = np.einsum('mjd,mdc->mjc', phi, grad_u_moy)
         return np.einsum('mjc,mic->ij', np.add(t1, t2), phi)
-    
-    
-    def B_tilde(grad_phi):
+
+    def B_tilde():
         """
         Return the coefficients array b_tilde with dims (npod, npod).
-    
+
         Inputs
         -------
-    
+
         grad_phi : array with dims (nx, npod, nc, nc)
             Gradient of POD basis.
-    
+
         Output
         -------
-    
+
         b_tilde : array with dims (npod, npod)
             b_tilde[i, j] = (u_moy[m, d]*grad_phi[m, j, d, c] +
                               phi[m, j, d]*grad_u_moy[m, d, c])*phi[m, i , c]
         """
-        return np.einsum('mjce,mice->ij',
-                         (grad_phi + grad_phi.swapaxes(2, 3))/2,
-                         grad_phi)
+        return (mu/rho)*np.einsum('mjce,mice->ij',
+                                  (grad_phi + grad_phi.swapaxes(2, 3))/2,
+                                  grad_phi)
 
-    return B_bar + B_tilde
+    return B_bar() + B_tilde()
 
-def B():
+
+def C(phi, grad_phi):
     """
-    Return the matrix B = rho[m]*b_bar[m, i, j] + mu[m]*b_tilde[m, i, j]
-    with dims (npod, npod)
-
-    Inputs
-    -------
-    rho : array with dims (nx, )
-        Pointwise fluid density (kg/m3).
-
-    mu : array with dims (nx, )
-        Pointwise fluid dynamic viscosity (Pa.s).
-
-    b_bar : array with dim (nx, npod, npod)
-        Coefficients b_bar[m, i, j] returned by the function b_bar above.
-
-    b_tilde : array with dim (nx, npod, npod)
-        Coefficients b_tilde[m, i, j] returned by the function b_tilde above.
-
-    Output
-    -------
-
-    B : array with dims (npod, npod)
-        B[i, j] = rho[m]*b_bar[m, i, j] + mu[m]*b_tilde[m, i, j]
-    """
-    return np.sum((np.einsum('m,mij->ij', rho, b_bar),
-                   np.einsum('m,mij->ij', mu, b_tilde)))
-
-
-def c(phi, grad_phi):
-    """
-    Return the coefficients array c[m, i, j, k] = phi[m, k, c]*grad_phi[m, j, c, d]*phi[m, i, d]
-    with dims (nx, npod, npod, npod)
+    Return the coefficients array
+    C[i, j, k] = phi[m, k, c]*grad_phi[m, j, c, d]*phi[m, i, d]
+    with dims (npod, npod, npod)
 
     Input
     ------
@@ -357,63 +248,102 @@ def c(phi, grad_phi):
     phi : array with dims (nx, npod, nc)
         POD basis.
 
+    grad_phi : array with dims (nx, npod, nc, nc)
+
     Output
     ------
 
-    c : array with dims (nx, npod, npod)
-        a[m, i, j] = phi[m, i, c]*phi[m, j, c]
-
-    """
-    return np.einsum('mkc,mjcd,mid->mijk', phi, grad_phi, phi)
-
-
-def C(rho, c):
-    """
-    Return the tensor C = (rho phi_k grad phi_j, phi_i) with dims (npod, npod, npod)
-
-    Inputs
-    -------
-    rho : array with dims (nx, )
-        Pointwise fluid density (kg/m3).
-
-    c : array with dim (nx, npod, npod)
-        Coefficients c[m, i, j, k] returned by the function c(phi, grad_phi) above.
-
-    Output
-    -------
-
     C : array with dims (npod, npod, npod)
-        C[i, j, k] = rho[m]*phi[m, k, c]*grad_phi[m, j, c, d]*phi[m, i, d]
+        C[i, j, k] = phi[m, k, c]*gradphi[m, j, c, d]*phi[m, i, d]
+
     """
-    return np.einsum('m,mijk->ijk', rho, c)
+    return np.einsum('mkc,mjcd,mid->ijk', phi, grad_phi, phi)
 
 
-def f_bar(phi, f=None):
-    """
-    """
-    if f is None:
-        return np.zeros((phi.shape[1], ))
-    else:
-        return np.einsum('mc,mic->i', f, phi)
+def F(u_moy, grad_u_moy, phi, grad_phi, rho, mu):
+
+    def F_bar():
+        """
+        """
+        return np.einsum('mc,mcd,mid->mi', u_moy, grad_u_moy, phi)
+
+    def F_tilde():
+        """
+        """
+        return (rho/mu)*np.einsum('mcd,micd->i',
+                                  (grad_u_moy + grad_u_moy.swapaxes(1, 2))/2,
+                                  grad_phi)
+    return F_bar() + F_tilde()
 
 
-def f_hat(u_moy, grad_u_moy, phi):
-    """
-    """
-    return -np.einsum('mc,mcd,mid->mi', u_moy, grad_u_moy, phi)
+###############################################################################
+
+###############################################################################
 
 
-def f_tilde(grad_u_moy, grad_phi):
+def build_rom_coefficients_A(hdf_path_podBasis, hdf_path_A):
     """
     """
-    return -np.einsum('mcd,micd->mi',
-                      grad_u_moy + grad_u_moy.swapaxes(1,2),
-                      grad_phi)/2.
+    basis = HDFData(hdf_path_podBasis, openFile=True)
+    array_a = A(basis.get_single_data())
+    dumpArrays2Hdf([array_a, ], ['a', ], hdf_path_A)
+    basis.closeHdfFile()
 
 
-def f(rho, mu, f_bar, f_hat, f_tilde):
+def build_rom_coefficients_B(hdf_path_podBasis, hdf_path_podBasisGradient,
+                             hdf_path_mean, hdf_path_meanGradient, mu, rho,
+                             hdf_path_B):
     """
     """
-    return np.sum((f_bar,
-                   np.einsum('m,mi->i', rho, f_hat),
-                   np.einsum('m,mi->i', mu, f_tilde)))
+    basis = HDFData(hdf_path_podBasis, openFile=True)
+    basis_gradient = HDFData(hdf_path_podBasisGradient, openFile=True)
+    mean = HDFData(hdf_path_mean, openFile=True)
+    mean_gradient = HDFData(hdf_path_meanGradient, openFile=True)
+
+    array_B = B(basis.get_single_data(),
+                basis_gradient.get_single_data(),
+                mean.get_single_data(),
+                mean_gradient.get_single_data(),
+                mu, rho)
+
+    dumpArrays2Hdf([array_B, ], ['b', ], hdf_path_B)
+
+    for hdf in [basis, basis_gradient, mean, mean_gradient]:
+        hdf.closeHdfFile()
+
+
+def build_rom_coefficients_C(hdf_path_podBasis, hdf_path_podBasisGradient,
+                             hdf_path_C):
+    """
+    """
+    basis = HDFData(hdf_path_podBasis, openFile=True)
+    basis_gradient = HDFData(hdf_path_podBasisGradient, openFile=True)
+
+    array_C = C(basis.get_single_data(), basis_gradient.get_single_data())
+    dumpArrays2Hdf([array_C, ], ['c', ], hdf_path_C)
+    basis.closeHdfFile()
+    basis_gradient.closeHdfFile()
+
+
+def build_rom_coefficients_F(hdf_path_podBasis, hdf_path_podBasisGradient,
+                             hdf_path_mean, hdf_path_meanGradient, mu, rho,
+                             hdf_path_F):
+    """
+    """
+    basis = HDFData(hdf_path_podBasis, openFile=True)
+    basis_gradient = HDFData(hdf_path_podBasisGradient, openFile=True)
+    mean = HDFData(hdf_path_mean, openFile=True)
+    mean_gradient = HDFData(hdf_path_meanGradient, openFile=True)
+
+    array_F = F(basis.get_single_data(),
+                basis_gradient.get_single_data(),
+                mean.get_single_data(),
+                mean_gradient.get_single_data(),
+                mu, rho)
+    dumpArrays2Hdf([array_F, ], ['f', ], hdf_path_F)
+
+    for hdf in [basis, basis_gradient, mean, mean_gradient]:
+        hdf.closeHdfFile()
+
+
+###############################################################################
