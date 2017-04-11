@@ -14,8 +14,7 @@ from ..readwrite.read_hdf import HDFData
 from ..config import ORDER
 
 
-def mean2MeanGradient(hdf_path_mean, hdf_path_meangradient, hdf_path_grid, 
-                      nc=3):
+def mean2MeanGradient(hdf_path_mean, hdf_path_meangradient, hdf_path_grid):
     mean = HDFData(hdf_path_mean, openFile=True)
     grid = HDFData(hdf_path_grid, openFile=True)
     grid_shape = map(int, list(grid.original_shape[:, 0]))
@@ -27,8 +26,7 @@ def mean2MeanGradient(hdf_path_mean, hdf_path_meangradient, hdf_path_grid,
     mean.closeHdfFile()
     
 
-def basis2BasisGradient(hdf_path_basis, hdf_path_basisgradient, hdf_path_grid, 
-                        nc=3):
+def basis2BasisGradient(hdf_path_basis, hdf_path_basisgradient, hdf_path_grid):
     basis = HDFData(hdf_path_basis, openFile=True)
     grid = HDFData(hdf_path_grid, openFile=True)
     grid_shape = map(int, list(grid.original_shape[:, 0]))

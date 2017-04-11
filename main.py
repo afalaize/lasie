@@ -45,22 +45,24 @@ actions = {'ALL': True,
            'coefficients': False,
            'writeVtu': False,
            'Thost_temporal_coeffs': False,
-           'rom': True
+           'rom': False
            }
 
 
 ###############################################################################
 
-CONFIG = {'vtu_folder': r'/Volumes/AFALAIZE/cylindre2D_SCC_windows/Results',
+# OSX USB: /Volumes/AFALAIZE/cylindre2D_SCC_windows/Results
+# WIn: F:\TESTS_THOST\cylindre2D_SCC_windows\Results
+
+CONFIG = {'vtu_folder': r'F:\TESTS_THOST\cylindre2D_SCC_windows\Results',
           'data_names_vtu': [r'Vitesse(m/s)', r'MasseVolumique(kg/m3)', r'Eta'],
-          'h': (0.01, )*3,
-          'threshold': 1e-6,
+          'h': (0.005, )*3,
+          'threshold': 1e-2,
           'delta_t': 0.1,
-          'nc': 2,
           'beta': .5,
           'theta1': .5,
           'theta2': .5,
-          'load': {'imin': 400, 'imax': 425, 'decim': 1},
+          'load': {'imin': 0, 'imax': None, 'decim': 1},
           }
 
 ###############################################################################
@@ -88,7 +90,7 @@ CONFIG['hdf_path_Thost_temporal_coeffs'] = CONFIG['interp_hdf_folder'] + os.sep 
 
 def convert_vtu2hdf():
     pvd_path = CONFIG['vtu_folder'] + os.sep + PVDNAME
-    pvd2Hdf(pvd_path, CONFIG['hdf_folder'], CONFIG['data_names_vtu'], nc=CONFIG['nc'],
+    pvd2Hdf(pvd_path, CONFIG['hdf_folder'], CONFIG['data_names_vtu'],
             **CONFIG['load'])
 
 
@@ -97,7 +99,7 @@ def convert_vtu2hdf():
 def interpolate_data_over_regular_grid():
     TS = HDFTimeSerie(CONFIG['hdf_folder'])
     TS.openAllFiles()
-
+    
     # A regular (1+N)-dimensional grid. E.g with N=3, grid[c, i, j, k] is the component ‘c’ of the coordinates of the point at position (i, j, k).
     grid = buildGrid(TS.data[0].getMeshMinMax(), CONFIG['h'])
     shape = grid.shape
@@ -105,7 +107,7 @@ def interpolate_data_over_regular_grid():
     grid_h = list()
     for i, xi in enumerate(mesh.T):
         grid_h.append(max(np.diff(xi)))
-    dumpArrays2Hdf([mesh, np.array(shape).reshape((CONFIG['nc']+1, 1)), np.array(grid_h).reshape((CONFIG['nc'], 1))],
+    dumpArrays2Hdf([mesh, np.array(shape)[:, np.newaxis], np.array(grid_h)[:, np.newaxis]],
                     ['mesh', 'original_shape', 'h'], CONFIG['hdf_path_grid'])
     interpTimeSerieToHdf(TS, mesh, CONFIG['interp_hdf_folder'])
     TS.closeAllFiles()
