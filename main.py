@@ -34,7 +34,7 @@ import progressbar
 
 import matplotlib.pyplot as plt
 
-actions = {'ALL': True,
+actions = {'ALL': False,
            'vtu2hdf': False,
            'interpolate': False,
            'ts2data': False,
@@ -96,10 +96,25 @@ def convert_vtu2hdf():
 
 ###############################################################################
 
+def form_data_matrix():
+    folder = CONFIG['hdf_folder']
+    TS = HDFTimeSerie(folder)
+    data_name = format_data_name(CONFIG['data_names_vtu'][0])
+    path = folder + os.sep + 'data.hdf5'
+    load = CONFIG['load']
+    ts2HdfDataMatrix(TS, data_name, path, **load)
+    data = HDFData(path, openFile=True)
+    e = compute_kinetic_energy(data.get_single_data())
+    plt.plot(TS.times, e, 'o:')
+    plt.title('Energie cinetique')
+
+
+###############################################################################
+
 def interpolate_data_over_regular_grid():
     TS = HDFTimeSerie(CONFIG['hdf_folder'])
     TS.openAllFiles()
-    
+
     # A regular (1+N)-dimensional grid. E.g with N=3, grid[c, i, j, k] is the component ‘c’ of the coordinates of the point at position (i, j, k).
     grid = buildGrid(TS.data[0].getMeshMinMax(), CONFIG['h'])
     shape = grid.shape
