@@ -96,7 +96,7 @@ def convert_vtu2hdf():
 
 ###############################################################################
 
-def form_data_matrix():
+def plot_kinetic_energy():
     folder = CONFIG['hdf_folder']
     TS = HDFTimeSerie(folder)
     data_name = format_data_name(CONFIG['data_names_vtu'][0])

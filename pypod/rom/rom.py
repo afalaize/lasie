@@ -244,8 +244,8 @@ class ReducedOrderModel(object):
 
 def a(phi):
     """
-    Return the coefficients array a[m, i, j] = phi[m, i, c]*phi[m, j, c]
-    with dims (nx, npod, npod)
+    Return the coefficients array A[i, j] = phi[m, i, c]*phi[m, j, c]
+    with dims (npod, npod)
 
     Input
     ------
@@ -256,87 +256,68 @@ def a(phi):
     Output
     ------
 
-    a : array with dims (nx, npod, npod)
-        a[m, i, j] = phi[m, i, c]*phi[m, j, c]
-
-    """
-    return np.einsum('mic,mjc->mij', phi, phi)
-
-
-def A(rho, a):
-    """
-    Return the matrix A = (rho phi_j, phi_i) with dims (npod, npod)
-
-    Inputs
-    -------
-    rho : array with dims (nx, )
-        Pointwise fluid density (kg/m3).
-
-    a : array with dim (nx, npod, npod)
-        Coefficients a[m, i, j] returned by the function a(phi) above.
-
-    Output
-    -------
-
     A : array with dims (npod, npod)
-        A[i, j] = rho[m]*a[m, i, j]
+        A[i, j] = phi[m, i, c]*phi[m, j, c]
+
     """
-    return np.einsum('m,mij->ij', rho, a)
+    return np.einsum('mic,mjc->ij', phi, phi)
 
 
-def b_bar(phi, grad_phi, u_moy, grad_u_moy):
-    """
-    Return the coefficients array b_bar with dims (nx, npod, npod).
 
-    Inputs
-    -------
-    phi : array with dims (nx, npod, nc)
-        POD basis.
+    def b_bar(phi, grad_phi, u_moy, grad_u_moy):
+        """
+        Return the coefficients array b_bar with dims (npod, npod).
+    
+        Inputs
+        -------
+        phi : array with dims (nx, npod, nc)
+            POD basis.
+    
+        grad_phi : array with dims (nx, npod, nc, nc)
+            Gradient of POD basis.
+    
+        u_moy : array with dims (nx, nc)
+            Mean velocity.
+    
+        grad_u_moy : array with dims (nx, nc, nc)
+            gradient of mean velocity
+    
+        Output
+        -------
+    
+        b_bar : array with dims (npod, npod)
+            b_bar[i, j] =  (u_moy[m, d]*grad_phi[m, j, d, c] +
+                            phi[m, j, d]*grad_u_moy[m, d, c])*phi[m, i , c]
+        """
+        t1 = np.einsum('md,mjdc->mjc', u_moy, grad_phi)
+        t2 = np.einsum('mjd,mdc->mjc', phi, grad_u_moy)
+        return np.einsum('mjc,mic->ij', np.add(t1, t2), phi)
+    
+    
+    def B_tilde(grad_phi):
+        """
+        Return the coefficients array b_tilde with dims (npod, npod).
+    
+        Inputs
+        -------
+    
+        grad_phi : array with dims (nx, npod, nc, nc)
+            Gradient of POD basis.
+    
+        Output
+        -------
+    
+        b_tilde : array with dims (npod, npod)
+            b_tilde[i, j] = (u_moy[m, d]*grad_phi[m, j, d, c] +
+                              phi[m, j, d]*grad_u_moy[m, d, c])*phi[m, i , c]
+        """
+        return np.einsum('mjce,mice->ij',
+                         (grad_phi + grad_phi.swapaxes(2, 3))/2,
+                         grad_phi)
 
-    grad_phi : array with dims (nx, npod, nc, nc)
-        Gradient of POD basis.
+    return B_bar + B_tilde
 
-    u_moy : array with dims (nx, nc)
-        Mean velocity.
-
-    grad_u_moy : array with dims (nx, nc, nc)
-        gradient of mean velocity
-
-    Output
-    -------
-
-    b_bar : array with dims (nx, npod, npod)
-        b_bar[m, i, j] = (u_moy[m, d]*grad_phi[m, j, d, c] +
-                          phi[m, j, d]*grad_u_moy[m, d, c])*phi[m, i , c]
-    """
-    t1 = np.einsum('md,mjdc->mjc', u_moy, grad_phi)
-    t2 = np.einsum('mjd,mdc->mjc', phi, grad_u_moy)
-    return np.einsum('mjc,mic->mij', np.add(t1, t2), phi)
-
-
-def b_tilde(grad_phi):
-    """
-    Return the coefficients array b_tilde with dims (nx, npod, npod).
-
-    Inputs
-    -------
-
-    grad_phi : array with dims (nx, npod, nc, nc)
-        Gradient of POD basis.
-
-    Output
-    -------
-
-    b_tilde : array with dims (nx, npod, npod)
-        b_tilde[m, i, j] = (u_moy[m, d]*grad_phi[m, j, d, c] +
-                          phi[m, j, d]*grad_u_moy[m, d, c])*phi[m, i , c]
-    """
-    return np.einsum('mjce,mice->mij',
-                     (grad_phi + grad_phi.swapaxes(2, 3))/2,
-                     grad_phi)
-
-
-def B(rho, mu, b_bar, b_tilde):
+def B():
     """
     Return the matrix B = rho[m]*b_bar[m, i, j] + mu[m]*b_tilde[m, i, j]
     with dims (npod, npod)

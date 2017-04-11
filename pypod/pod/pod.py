@@ -60,13 +60,14 @@ def formatedGradient(array, grid_shape, h):
 
     
 def ts2HdfDataMatrix(ts, data_name, hdf_path, imin=0, imax=None, decim=1.):
-    ts.openAllFiles()
     dataL = list()
     if imax is None:
         imax = float('Inf')
     for i, d in enumerate(ts.data):
         #if imin <= i < imax and i%decim == 0:
+        d.openHdfFile()
         dataL.append(getattr(d, data_name)[:][:, np.newaxis, :])
+        d.closeHdfFile()
     data = np.concatenate(dataL, axis=1)
     dumpArrays2Hdf([data, ], [data_name, ], hdf_path)
     
