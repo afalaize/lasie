@@ -195,17 +195,16 @@ def truncatedNpod(modes_energy, threshold=1e-6):
 
 
 def checkPODBasisIsOrthonormal(basis):
-    M = np.abs(np.dot(basis.T, basis))
-    for i in range(M.shape[0]):
-        M[i, i] = 0
-    print("val max out of diag from np.dot(basis.T, basis) is {}".format(M.max()))
+    M = np.einsum('mic,mjc->ij', basis, basis)
+    print(M)
+    print("val max out of diag from np.dot(basis.T, basis) is {}".format((M-np.eye(M.shape[0])).max()))
+    print("mean val on diag from np.dot(basis.T, basis) is {}".format(np.einsum('ii', M)/M.shape[0]))
 
     
 def normalizePODBasis(basis, array_weightingMatrix):
-    for i in range(basis.shape[1]):
-        scalarprod = scalarProduct(basis[:, i, 0], basis[:, i, 0], 
-                                   array_weightingMatrix)
-        basis[:,i] = basis[:,i]/np.sqrt(scalarprod)
+    M = np.einsum('mic,mjc->ij', basis, basis)
+    for i, row in enumerate(M):
+        basis[:,i] = basis[:,i]/np.sqrt(row[i])
         
 class POD(object):
 

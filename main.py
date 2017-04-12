@@ -18,7 +18,8 @@ from pypod.grids.tools import buildGrid, grid2mesh
 from pypod.pod.tools import compute_kinetic_energy
 from pypod.pod.pod import (ts2HdfDataMatrix, dataMatrix2MeanAndFluc,
                            fluc2CorrMatrix, computePODBasis,
-                           mean2MeanGradient, basis2BasisGradient)
+                           mean2MeanGradient, basis2BasisGradient,
+                           checkPODBasisIsOrthonormal)
 
 from pypod.readwrite.write_vtu import write_vtu
 
@@ -40,12 +41,11 @@ actions = {'ALL': False,
            'ts2data': False,
            'data2meanAndFluc': False,
            'fluc2Corr': False,
-           'corr2basis': False,
-           'gradients': False,
-           'coefficients': False,
+           'corr2basis': True,
+           'gradients': True,
            'writeVtu': False,
-           'Thost_temporal_coeffs': False,
-           'rom': False
+           'Thost_temporal_coeffs': True,
+           'rom': True
            }
 
 
@@ -57,12 +57,10 @@ actions = {'ALL': False,
 CONFIG = {'vtu_folder': r'F:\TESTS_THOST\cylindre2D_SCC_windows\Results',
           'data_names_vtu': [r'Vitesse(m/s)', r'MasseVolumique(kg/m3)', r'Eta'],
           'h': (0.005, )*3,
-          'threshold': 1e-2,
-          'delta_t': 0.1,
-          'beta': .5,
-          'theta1': .5,
-          'theta2': .5,
-          'load': {'imin': 0, 'imax': None, 'decim': 1},
+          'threshold': 1e-1,
+          'delta_t': None,
+          'theta': 0.,
+          'load': {'imin': 20, 'imax': 270, 'decim': 1},
           }
 
 ###############################################################################
@@ -88,14 +86,6 @@ CONFIG['hdf_path_Thost_temporal_coeffs'] = CONFIG['interp_hdf_folder'] + os.sep 
 
 ###############################################################################
 
-def convert_vtu2hdf():
-    pvd_path = CONFIG['vtu_folder'] + os.sep + PVDNAME
-    pvd2Hdf(pvd_path, CONFIG['hdf_folder'], CONFIG['data_names_vtu'],
-            **CONFIG['load'])
-
-
-###############################################################################
-
 def plot_kinetic_energy():
     folder = CONFIG['hdf_folder']
     TS = HDFTimeSerie(folder)
@@ -107,7 +97,13 @@ def plot_kinetic_energy():
     e = compute_kinetic_energy(data.get_single_data())
     plt.plot(TS.times, e, 'o:')
     plt.title('Energie cinetique')
+    data.closeHdfFile()
 
+def convert_vtu2hdf():
+    pvd_path = CONFIG['vtu_folder'] + os.sep + PVDNAME
+    pvd2Hdf(pvd_path, CONFIG['hdf_folder'], CONFIG['data_names_vtu'],
+            **CONFIG['load'])
+    plot_kinetic_energy()
 
 ###############################################################################
 
@@ -163,6 +159,11 @@ def form_pod_basis():
     print('Form pod basis')
     computePODBasis(CONFIG['hdf_path_corr'], CONFIG['hdf_path_fluc'],
                     CONFIG['hdf_path_podBasis'], threshold=CONFIG['threshold'])
+    basis = HDFData(CONFIG['hdf_path_podBasis'])
+    basis.openHdfFile()
+    checkPODBasisIsOrthonormal(basis.get_single_data())
+    basis.closeHdfFile()
+    
 
 
 
@@ -176,29 +177,6 @@ def form_gradients():
     basis2BasisGradient(CONFIG['hdf_path_podBasis'], CONFIG['hdf_path_podBasisGradient'],
                         CONFIG['hdf_path_grid'])
 
-
-###############################################################################
-
-def build_coefficients():
-    print('Form ROM coefficients')
-    build_rom_coefficients_A(CONFIG['hdf_path_podBasis'],
-                             CONFIG['hdf_path_A'])
-
-    build_rom_coefficients_B(CONFIG['hdf_path_podBasis'],
-                             CONFIG['hdf_path_podBasisGradient'],
-                             CONFIG['hdf_path_mean'],
-                             CONFIG['hdf_path_meanGradient'],
-                             CONFIG['hdf_path_B'])
-
-    build_rom_coefficients_C(CONFIG['hdf_path_podBasis'],
-                             CONFIG['hdf_path_podBasisGradient'],
-                             CONFIG['hdf_path_C'])
-
-    build_rom_coefficients_F(CONFIG['hdf_path_podBasis'],
-                             CONFIG['hdf_path_podBasisGradient'],
-                             CONFIG['hdf_path_mean'],
-                             CONFIG['hdf_path_meanGradient'],
-                             CONFIG['hdf_path_F'])
 ###############################################################################
 
 def export_pod_basis_to_vtu():
@@ -257,21 +235,41 @@ if __name__ is '__main__':
         form_pod_basis()
     if actions['gradients'] or actions['ALL']:
         form_gradients()
-    if actions['coefficients'] or actions['ALL']:
-        build_coefficients()
     if actions['writeVtu'] or actions['ALL']:
         export_pod_basis_to_vtu()
     if actions['Thost_temporal_coeffs'] or actions['ALL']:
         compute_Thost_temporal_coeffs()
     if actions['rom'] or actions['ALL']:
+        ts = HDFTimeSerie(CONFIG['interp_hdf_folder'])
+        ts.data[0].openHdfFile()
+        rho = ts.data[0].massevolumique[:].flatten()[0]
+        mu = ts.data[0].eta[:].flatten()[0]
+        build_rom_coefficients_A(CONFIG['hdf_path_podBasis'],
+                                 CONFIG['hdf_path_A'])
+    
+        build_rom_coefficients_B(CONFIG['hdf_path_podBasis'],
+                                 CONFIG['hdf_path_podBasisGradient'],
+                                 CONFIG['hdf_path_mean'],
+                                 CONFIG['hdf_path_meanGradient'], mu, rho, 
+                                 CONFIG['hdf_path_B'])
+    
+        build_rom_coefficients_C(CONFIG['hdf_path_podBasis'],
+                                 CONFIG['hdf_path_podBasisGradient'],
+                                 CONFIG['hdf_path_C'])
+    
+        build_rom_coefficients_F(CONFIG['hdf_path_podBasis'],
+                                 CONFIG['hdf_path_podBasisGradient'],
+                                 CONFIG['hdf_path_mean'],
+                                 CONFIG['hdf_path_meanGradient'], mu, rho,
+                                 CONFIG['hdf_path_F'])
         rom = ReducedOrderModel(CONFIG)
-        rom.run(dt=None, tend=None, istart=None,
-                beta=CONFIG['beta'], theta1=CONFIG['theta1'],
-                theta2=CONFIG['theta2'])
+        rom.run(dt=None, tend=None, istart=None, theta=CONFIG['theta'])
         for i in range(rom.npod()):
             plt.figure()
             plt.plot(rom.times, rom.c_fom(i)[:-1], ':o', label='fom')
             plt.plot(rom.times, rom.c_rom(i)[:-1], '-x', label='rom')
             plt.title('mode {}'.format(i+1))
             plt.legend()
+            plt.grid('on')
             plt.show()
+        rom.close_hdfs()

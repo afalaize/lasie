@@ -37,6 +37,13 @@ class ReducedOrderModel(object):
         print('Open ThosT Temporal Coeff...')
         self.Thost_temporal_coeffs = HDFData(config['hdf_path_Thost_temporal_coeffs'], openFile=True)
 
+        
+    def close_hdfs(self):
+        for name in 'ABCF':
+            getattr(self, name+'_coeffs').closeHdfFile()
+        self.Thost_temporal_coeffs.closeHdfFile()
+            
+        
     def nc(self):
         """
         return the number of spatial components
@@ -91,18 +98,6 @@ class ReducedOrderModel(object):
         tF = self.F()
         return tA + tB + tC + tF
 
-    def jac_imp_func(self, delta_coeffs, coeffs, t, delta_t, theta):
-        tA = self.A()/delta_t
-        tB = theta*self.B()
-        tC1 = np.einsum('jl,k->ljk',
-                        np.eye(self.npod()),
-                        coeffs + theta*delta_coeffs)
-        tC2 = np.einsum('kl,j->ljk',
-                        np.eye(self.npod()),
-                        coeffs + theta*delta_coeffs)
-        tC = np.einsum('ijk,ljk->il', self.C(), theta*tC1 + theta*tC2)
-        return tA + tB + tC
-
     def run(self, dt=None,
             tend=None, istart=None, theta=.5):
 
@@ -136,14 +131,13 @@ class ReducedOrderModel(object):
             args = (self.coeffs[-1], t, dt, theta)
             res = root(self.imp_func,
                        delta_coeff,
-                       args,
-                       jac=self.jac_imp_func)
+                       args)
             if not res.success:
                 s = 'Convergence issue at time t={} (index {}):\n    {}'
                 print(s.format(t, i, res.message))
 
             delta_coeff = res.x
-            self.coeffs.append(self.coeffs[i] + delta_coeff)
+            self.coeffs.append(self.coeffs[-1] + delta_coeff)
 
     def c_rom(self, i=None):
         if i is None:
@@ -153,7 +147,7 @@ class ReducedOrderModel(object):
 
     def c_fom(self, i=None):
         if i is None:
-            return self.Thost_temporal_coeffs
+            return self.Thost_temporal_coeffs.get_single_data()
         else:
             return [el[i] for el in self.Thost_temporal_coeffs.get_single_data()]
 
@@ -229,9 +223,9 @@ def B(phi, grad_phi, u_moy, grad_u_moy, mu, rho):
             b_tilde[i, j] = (u_moy[m, d]*grad_phi[m, j, d, c] +
                               phi[m, j, d]*grad_u_moy[m, d, c])*phi[m, i , c]
         """
-        return (mu/rho)*np.einsum('mjce,mice->ij',
-                                  (grad_phi + grad_phi.swapaxes(2, 3))/2,
-                                  grad_phi)
+        D = (grad_phi + grad_phi.swapaxes(2, 3))/2.
+        temp = np.einsum('mjce,mied->mijcd', D, grad_phi)
+        return (mu/rho)*np.sum(np.einsum('mijcc->mij', temp), axis=0)
 
     return B_bar() + B_tilde()
 
@@ -260,19 +254,19 @@ def C(phi, grad_phi):
     return np.einsum('mkc,mjcd,mid->ijk', phi, grad_phi, phi)
 
 
-def F(u_moy, grad_u_moy, phi, grad_phi, rho, mu):
+def F(phi, grad_phi, u_moy, grad_u_moy, mu, rho):
 
     def F_bar():
         """
         """
-        return np.einsum('mc,mcd,mid->mi', u_moy, grad_u_moy, phi)
+        return np.einsum('mc,mcd,mid->i', u_moy, grad_u_moy, phi)
 
     def F_tilde():
         """
         """
-        return (rho/mu)*np.einsum('mcd,micd->i',
-                                  (grad_u_moy + grad_u_moy.swapaxes(1, 2))/2,
-                                  grad_phi)
+        D = (grad_u_moy + grad_u_moy.swapaxes(1, 2))/2.
+        temp = np.einsum('mce,mied->micd', D, grad_phi)
+        return (mu/rho)*np.sum(np.einsum('micc->mi', temp), axis=0)
     return F_bar() + F_tilde()
 
 
