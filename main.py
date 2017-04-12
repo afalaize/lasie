@@ -283,5 +283,7 @@ if __name__ is '__main__':
             plt.title('mode {}'.format(i+1))
             plt.legend()
             plt.grid('on')
+            plt.savefig('coeffs_temporels_mode{}.png'.format(i+1), 
+                        format='png')
             plt.show()
         rom.close_hdfs()

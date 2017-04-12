@@ -18,16 +18,17 @@ for k in CONFIG.keys():
     
 ts = HDFTimeSerie(CONFIG['interp_hdf_folder'])
 ts.openAllFiles()
-
-v = ts.data[0].vitesse[:]
+ts.closeAllFiles()
+mean = HDFData(CONFIG['hdf_path_mean'], openFile=True)
+v = mean.get_single_data()
+mean.closeHdfFile()
 
 grid = HDFData(CONFIG['hdf_path_grid'], openFile=True)
 
-path = r'F:\TESTS_THOST\cylindre2D_SCC_windows\Results\hdf5_interpolated\test.vtu'
+path = r'F:\TESTS_THOST\cylindre2D_SCC_windows\Results\hdf5_interpolated\mean.vtu'
 
 write_vtu(grid.mesh[:], grid.original_shape,
           [v, ], 'vitesse', path)
 
 grid.closeHdfFile()
 
-ts.closeAllFiles()
