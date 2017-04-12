@@ -37,13 +37,11 @@ class ReducedOrderModel(object):
         print('Open ThosT Temporal Coeff...')
         self.Thost_temporal_coeffs = HDFData(config['hdf_path_Thost_temporal_coeffs'], openFile=True)
 
-        
     def close_hdfs(self):
         for name in 'ABCF':
             getattr(self, name+'_coeffs').closeHdfFile()
         self.Thost_temporal_coeffs.closeHdfFile()
-            
-        
+
     def nc(self):
         """
         return the number of spatial components
@@ -128,16 +126,23 @@ class ReducedOrderModel(object):
 
         for i in bar(range(len(self.times))):
             t = self.times[i]
-            args = (self.coeffs[-1], t, dt, theta)
-            res = root(self.imp_func,
-                       delta_coeff,
-                       args)
-            if not res.success:
-                s = 'Convergence issue at time t={} (index {}):\n    {}'
-                print(s.format(t, i, res.message))
+#            args = (self.coeffs[-1], t, dt, theta)
+#            res = root(self.imp_func,
+#                       delta_coeff,
+#                       args)
+#            if not res.success:
+#                s = 'Convergence issue at time t={} (index {}):\n    {}'
+#                print(s.format(t, i, res.message))
+#
+#            delta_coeff = res.x
 
-            delta_coeff = res.x
-            self.coeffs.append(self.coeffs[-1] + delta_coeff)
+            iA = np.linalg.inv(self.A()/dt)
+            c = self.coeffs[-1]
+            delta_coeff = -iA * (np.dot(self.B(), c) +
+                                 np.dot(np.dot(self.C(), c), c) +
+                                 self.F())
+
+            self.coeffs.append(c + delta_coeff)
 
     def c_rom(self, i=None):
         if i is None:

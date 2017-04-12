@@ -184,7 +184,7 @@ def setData(tree, data, label='PodBasisElement', dtype=None):
 
 
 if __name__ == '__main__':
-    grid = buildGrid(((0., 1.), (0, 2.), (0., 3.)), 0.1)
+    grid, h = buildGrid(((0., 1.), (0, 2.), (0., 3.)), 0.1)
     mesh = grid2mesh(grid)
     data = np.zeros(mesh.shape)
     for i, x in enumerate(mesh):

@@ -55,7 +55,9 @@ actions = {'ALL': False,
 # WIn: F:\TESTS_THOST\cylindre2D_SCC_windows\Results
 
 CONFIG = {'vtu_folder': r'F:\TESTS_THOST\cylindre2D_SCC_windows\Results',
-          'data_names_vtu': [r'Vitesse(m/s)', r'MasseVolumique(kg/m3)', r'Eta'],
+          'data_names_vtu': [r'Vitesse(m/s)',
+                             r'MasseVolumique(kg/m3)',
+                             r'Eta'],
           'h': (0.005, )*3,
           'threshold': 1e-1,
           'delta_t': None,
@@ -66,23 +68,32 @@ CONFIG = {'vtu_folder': r'F:\TESTS_THOST\cylindre2D_SCC_windows\Results',
 ###############################################################################
 
 CONFIG['hdf_folder'] = CONFIG['vtu_folder'] + os.sep + 'hdf5'
-CONFIG['interp_hdf_folder'] = CONFIG['vtu_folder'] + os.sep + 'hdf5_interpolated'
-CONFIG['hdf_path_dataMatrix'] = CONFIG['interp_hdf_folder'] + os.sep + 'data.hdf5'
+CONFIG['interp_hdf_folder'] = CONFIG['vtu_folder'] + os.sep + \
+    'hdf5_interpolated'
+CONFIG['hdf_path_dataMatrix'] = CONFIG['interp_hdf_folder'] + os.sep + \
+    'data.hdf5'
 CONFIG['hdf_path_grid'] = CONFIG['interp_hdf_folder'] + os.sep + 'grid.hdf5'
 CONFIG['hdf_path_mean'] = CONFIG['interp_hdf_folder'] + os.sep + 'mean.hdf5'
-CONFIG['hdf_path_meanGradient'] = CONFIG['interp_hdf_folder'] + os.sep + 'meanGradient.hdf5'
-CONFIG['hdf_path_meanDeformation'] = CONFIG['interp_hdf_folder'] + os.sep + 'meanDeformation.hdf5'
+CONFIG['hdf_path_meanGradient'] = CONFIG['interp_hdf_folder'] + os.sep + \
+    'meanGradient.hdf5'
+CONFIG['hdf_path_meanDeformation'] = CONFIG['interp_hdf_folder'] + os.sep + \
+    'meanDeformation.hdf5'
 CONFIG['hdf_path_weightingMatrix'] = None
 CONFIG['hdf_path_fluc'] = CONFIG['interp_hdf_folder'] + os.sep + 'fluc.hdf5'
 CONFIG['hdf_path_corr'] = CONFIG['interp_hdf_folder'] + os.sep + 'corr.hdf5'
-CONFIG['hdf_path_podBasis'] = CONFIG['interp_hdf_folder'] + os.sep + 'basis.hdf5'
-CONFIG['hdf_path_podBasisGradient'] = CONFIG['interp_hdf_folder'] + os.sep + 'basisGradient.hdf5'
+CONFIG['hdf_path_podBasis'] = CONFIG['interp_hdf_folder'] + os.sep + \
+    'basis.hdf5'
+CONFIG['hdf_path_podBasisGradient'] = CONFIG['interp_hdf_folder'] + os.sep + \
+    'basisGradient.hdf5'
 CONFIG['hdf_path_A'] = CONFIG['interp_hdf_folder'] + os.sep + 'coeffs_A.hdf5'
 CONFIG['hdf_path_B'] = CONFIG['interp_hdf_folder'] + os.sep + 'coeffs_B.hdf5'
 CONFIG['hdf_path_C'] = CONFIG['interp_hdf_folder'] + os.sep + 'coeffs_C.hdf5'
 CONFIG['hdf_path_F'] = CONFIG['interp_hdf_folder'] + os.sep + 'coeffs_F.hdf5'
-CONFIG['vtu_path_podBasis'] = CONFIG['interp_hdf_folder'] + os.sep + 'basis.vtu'
-CONFIG['hdf_path_Thost_temporal_coeffs'] = CONFIG['interp_hdf_folder'] + os.sep + 'Thost_temporal_coeffs.hdf5'
+CONFIG['vtu_path_podBasis'] = CONFIG['interp_hdf_folder'] + os.sep + \
+    'basis.vtu'
+CONFIG['hdf_path_Thost_temporal_coeffs'] = CONFIG['interp_hdf_folder'] + \
+    os.sep + 'Thost_temporal_coeffs.hdf5'
+
 
 ###############################################################################
 
@@ -99,11 +110,13 @@ def plot_kinetic_energy():
     plt.title('Energie cinetique')
     data.closeHdfFile()
 
+
 def convert_vtu2hdf():
     pvd_path = CONFIG['vtu_folder'] + os.sep + PVDNAME
     pvd2Hdf(pvd_path, CONFIG['hdf_folder'], CONFIG['data_names_vtu'],
             **CONFIG['load'])
     plot_kinetic_energy()
+
 
 ###############################################################################
 
@@ -111,16 +124,15 @@ def interpolate_data_over_regular_grid():
     TS = HDFTimeSerie(CONFIG['hdf_folder'])
     TS.openAllFiles()
 
-    # A regular (1+N)-dimensional grid. E.g with N=3, grid[c, i, j, k] is the component ‘c’ of the coordinates of the point at position (i, j, k).
-    grid = buildGrid(TS.data[0].getMeshMinMax(), CONFIG['h'])
-    shape = grid.shape
-    mesh = grid2mesh(grid)
-    grid_h = list()
-    for i, xi in enumerate(mesh.T):
-        grid_h.append(max(np.diff(xi)))
-    dumpArrays2Hdf([mesh, np.array(shape)[:, np.newaxis], np.array(grid_h)[:, np.newaxis]],
-                    ['mesh', 'original_shape', 'h'], CONFIG['hdf_path_grid'])
-    interpTimeSerieToHdf(TS, mesh, CONFIG['interp_hdf_folder'])
+    # A regular (1+N)-dimensional grid. E.g with N=3, grid[c, i, j, k] is the
+    # component ‘c’ of the coordinates of the point at position (i, j, k).
+    grid, grid_h = buildGrid(TS.data[0].getMeshMinMax(), CONFIG['h'])
+    grid_shape = grid.shape
+    grid_mesh = grid2mesh(grid)
+    dumpArrays2Hdf([grid_mesh, np.array(grid_shape)[:, np.newaxis],
+                    np.array(grid_h)[:, np.newaxis]],
+                   ['mesh', 'original_shape', 'h'], CONFIG['hdf_path_grid'])
+    interpTimeSerieToHdf(TS, grid_mesh, CONFIG['interp_hdf_folder'])
     TS.closeAllFiles()
 
 
@@ -163,8 +175,6 @@ def form_pod_basis():
     basis.openHdfFile()
     checkPODBasisIsOrthonormal(basis.get_single_data())
     basis.closeHdfFile()
-    
-
 
 
 ###############################################################################
@@ -174,8 +184,10 @@ def form_gradients():
     mean2MeanGradient(CONFIG['hdf_path_mean'], CONFIG['hdf_path_meanGradient'],
                       CONFIG['hdf_path_grid'])
     print('Form basis gradient')
-    basis2BasisGradient(CONFIG['hdf_path_podBasis'], CONFIG['hdf_path_podBasisGradient'],
+    basis2BasisGradient(CONFIG['hdf_path_podBasis'],
+                        CONFIG['hdf_path_podBasisGradient'],
                         CONFIG['hdf_path_grid'])
+
 
 ###############################################################################
 
@@ -206,16 +218,16 @@ def compute_Thost_temporal_coeffs():
     nt = fluct.vitesse.shape[1]
     temporal_coeffs = list()
     bar = progressbar.ProgressBar(widgets=[progressbar.Timer(), ' ',
-                                       progressbar.Bar(), ' (',
-                                       progressbar.ETA(), ')\n', ])
+                                           progressbar.Bar(), ' (',
+                                           progressbar.ETA(), ')\n', ])
 
     for i in bar(range(nt)):
         temporal_coeffs.append(compute_coeff(fluct.vitesse[:, i, :]))
 
     fluct.closeHdfFile()
     dumpArrays2Hdf([np.array(temporal_coeffs)],
-                    ['coeffs'],
-                    CONFIG['hdf_path_Thost_temporal_coeffs'])
+                   ['coeffs'],
+                   CONFIG['hdf_path_Thost_temporal_coeffs'])
 
 
 ###############################################################################
@@ -246,17 +258,17 @@ if __name__ is '__main__':
         mu = ts.data[0].eta[:].flatten()[0]
         build_rom_coefficients_A(CONFIG['hdf_path_podBasis'],
                                  CONFIG['hdf_path_A'])
-    
+
         build_rom_coefficients_B(CONFIG['hdf_path_podBasis'],
                                  CONFIG['hdf_path_podBasisGradient'],
                                  CONFIG['hdf_path_mean'],
-                                 CONFIG['hdf_path_meanGradient'], mu, rho, 
+                                 CONFIG['hdf_path_meanGradient'], mu, rho,
                                  CONFIG['hdf_path_B'])
-    
+
         build_rom_coefficients_C(CONFIG['hdf_path_podBasis'],
                                  CONFIG['hdf_path_podBasisGradient'],
                                  CONFIG['hdf_path_C'])
-    
+
         build_rom_coefficients_F(CONFIG['hdf_path_podBasis'],
                                  CONFIG['hdf_path_podBasisGradient'],
                                  CONFIG['hdf_path_mean'],
