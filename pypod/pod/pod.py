@@ -171,7 +171,7 @@ def computePODBasis(hdf_path_CorrMatrix, hdf_path_flucDataMatrix,
                          threshold=threshold)
 
     # Define POD basis
-    basis = np.einsum('mkj,ki->mij', fluc.get_single_data(),
+    basis = np.einsum('mtc,ti->mic', fluc.get_single_data(),
                       C_data.eigen_vecs[:, :npod])
     W = getWeightingMatrix(hdf_path_weightingMatrix)
     normalizePODBasis(basis, W.get_single_data())

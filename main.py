@@ -59,9 +59,11 @@ CONFIG = {'vtu_folder': r'F:\TESTS_THOST\cylindre2D_SCC_windows\Results',
                              r'MasseVolumique(kg/m3)',
                              r'Eta'],
           'h': (0.005, )*3,
-          'threshold': 1e-1,
-          'delta_t': None,
-          'theta': 0.,
+          'threshold': 1e-2,
+          'dt': None,
+          'istart': None,
+          'tend': None,
+          'theta': 1.,
           'load': {'imin': 20, 'imax': 270, 'decim': 1},
           }
 
@@ -197,7 +199,7 @@ def export_pod_basis_to_vtu():
     grid = HDFData(CONFIG['hdf_path_grid'], openFile=True)
     write_vtu(grid.mesh[:], grid.original_shape,
               [data[:, :] for data in basis.get_single_data().swapaxes(0, 1)],
-              'testData', CONFIG['vtu_path_podBasis'])
+              'PODmode', CONFIG['vtu_path_podBasis'])
     basis.closeHdfFile()
     grid.closeHdfFile()
 
@@ -228,6 +230,17 @@ def compute_Thost_temporal_coeffs():
     dumpArrays2Hdf([np.array(temporal_coeffs)],
                    ['coeffs'],
                    CONFIG['hdf_path_Thost_temporal_coeffs'])
+#    mean = HDFData(CONFIG['hdf_path_mean'], openFile=True).get_single_data()
+#    
+#    grid = HDFData(CONFIG['hdf_path_grid'], openFile=True)
+#    for i, coeffs in enumerate(temporal_coeffs):
+#        v = mean + np.einsum('i,mic->mc', coeffs, basis)
+#        write_vtu(grid.mesh[:], grid.original_shape,
+#                  [v, ],
+#                  'vitesse', CONFIG['vtu_folder'] + os.sep + 'reconstructed'+ os.sep + 'vitesse_{}.vtu'.format(i+1))
+#    grid.closeHdfFile()
+        
+        
 
 
 ###############################################################################
@@ -275,15 +288,16 @@ if __name__ is '__main__':
                                  CONFIG['hdf_path_meanGradient'], mu, rho,
                                  CONFIG['hdf_path_F'])
         rom = ReducedOrderModel(CONFIG)
-        rom.run(dt=None, tend=None, istart=None, theta=CONFIG['theta'])
+        rom.run(dt=CONFIG['dt'], tend=CONFIG['tend'], 
+                istart=CONFIG['istart'], theta=CONFIG['theta'])
         for i in range(rom.npod()):
             plt.figure()
-            plt.plot(rom.times, rom.c_fom(i)[:-1], ':o', label='fom')
+            plt.plot(rom.ts.times, rom.c_fom(i), ':o', label='fom')
             plt.plot(rom.times, rom.c_rom(i)[:-1], '-x', label='rom')
             plt.title('mode {}'.format(i+1))
             plt.legend()
             plt.grid('on')
-            plt.savefig('coeffs_temporels_mode{}.png'.format(i+1), 
+            plt.savefig('mode{}_dt={:.2f}_rho={:.2f}_mu={:.5f}.png'.format(i+1, rom.dt, rho, mu), 
                         format='png')
             plt.show()
         rom.close_hdfs()

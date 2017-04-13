@@ -22,43 +22,49 @@ class ReducedOrderModel(object):
         """
         """
         self.config = config
-        self.ts = HDFTimeSerie(config['interp_hdf_folder'])
-        print('Open TimeSerie HDF...')
-        self.ts.openAllFiles()
 
         print('Open POD basis HDF...')
-        self.basis = HDFData(config['hdf_path_podBasis'], openFile=True)
+        self.basis = HDFData(config['hdf_path_podBasis'])
 
         for name in 'ABCF':
             print('Open element {}...'.format(name))
-            hdf = HDFData(config['hdf_path_'+name], openFile=True)
+            hdf = HDFData(config['hdf_path_'+name])
             setattr(self, name+'_coeffs', hdf)
 
         print('Open ThosT Temporal Coeff...')
-        self.Thost_temporal_coeffs = HDFData(config['hdf_path_Thost_temporal_coeffs'], openFile=True)
+        self.Thost_temporal_coeffs = HDFData(config['hdf_path_Thost_temporal_coeffs'])
+        
+        self.open_hdfs()
+
+    def open_hdfs(self):
+        for name in 'ABCF':
+            getattr(self, name+'_coeffs').openHdfFile()
+        self.Thost_temporal_coeffs.openHdfFile()
+        self.basis.openHdfFile()
 
     def close_hdfs(self):
         for name in 'ABCF':
             getattr(self, name+'_coeffs').closeHdfFile()
         self.Thost_temporal_coeffs.closeHdfFile()
+        self.basis.closeHdfFile()
 
     def nc(self):
         """
         return the number of spatial components
         """
-        return self.basis.vitesse.shape[2]
+        return self.basis.get_single_data().shape[2]
 
     def npod(self):
         """
         return the number of pod basis elements
         """
-        return self.basis.vitesse.shape[1]
+        return self.basis.get_single_data().shape[1]
 
     def nx(self):
         """
         return the number of mesh nodes
         """
-        return self.basis.vitesse.shape[0]
+        return self.basis.get_single_data.shape[0]
 
     def nt(self):
         """
@@ -96,28 +102,17 @@ class ReducedOrderModel(object):
         tF = self.F()
         return tA + tB + tC + tF
 
-    def run(self, dt=None,
-            tend=None, istart=None, theta=.5):
+    def run(self, dt=0.01, tend=52.5, theta=.5):
 
-        if istart is None:
-            istart = 0
-        else:
-            assert istart < self.nt()-2
-        self.istart = istart
-
-        if dt is None:
-            dt = self.ts.times[1]-self.ts.times[0]
         self.dt = dt
 
-        self.tstart = self.ts.times[self.istart]
+        self.tstart = 50.
 
-        if tend is None:
-            tend = self.ts.times[-1]
         self.tend = tend
         self.times = [self.tstart + n*dt for n in range(int((tend-self.tstart)/dt)+1)]
 
         self.coeffs = list()
-        self.coeffs.append(self.Thost_temporal_coeffs.get_single_data()[self.istart, :])
+        self.coeffs.append(self.Thost_temporal_coeffs.get_single_data()[0, :])
         delta_coeff = np.zeros(self.npod())
 
         bar = progressbar.ProgressBar(widgets=[progressbar.Timer(), ' ',
@@ -177,7 +172,8 @@ def A(phi):
         A[i, j] = phi[m, i, c]*phi[m, j, c]
 
     """
-    return np.einsum('mic,mjc->ij', phi, phi)
+#    return np.einsum('mic,mjc->ij', phi, phi)
+    return np.eye(phi.shape[1])
 
 
 def B(phi, grad_phi, u_moy, grad_u_moy, mu, rho):
@@ -209,7 +205,7 @@ def B(phi, grad_phi, u_moy, grad_u_moy, mu, rho):
         """
         t1 = np.einsum('md,mjdc->mjc', u_moy, grad_phi)
         t2 = np.einsum('mjd,mdc->mjc', phi, grad_u_moy)
-        return np.einsum('mjc,mic->ij', np.add(t1, t2), phi)
+        return np.einsum('mjc,mic->ij', t1 + t2, phi)
 
     def B_tilde():
         """
@@ -229,8 +225,8 @@ def B(phi, grad_phi, u_moy, grad_u_moy, mu, rho):
                               phi[m, j, d]*grad_u_moy[m, d, c])*phi[m, i , c]
         """
         D = (grad_phi + grad_phi.swapaxes(2, 3))/2.
-        temp = np.einsum('mjce,mied->mijcd', D, grad_phi)
-        return (mu/rho)*np.sum(np.einsum('mijcc->mij', temp), axis=0)
+        trace_arg = np.einsum('mjce,mied->ijcd', D, grad_phi)
+        return (2*mu/rho)*np.einsum('ijcc->ij', trace_arg)
 
     return B_bar() + B_tilde()
 
@@ -256,7 +252,8 @@ def C(phi, grad_phi):
         C[i, j, k] = phi[m, k, c]*gradphi[m, j, c, d]*phi[m, i, d]
 
     """
-    return np.einsum('mkc,mjcd,mid->ijk', phi, grad_phi, phi)
+    temp = np.einsum('mjc,mkcd->mjkd', phi, grad_phi)
+    return np.einsum('mjkd,mid->ijk', temp, phi)
 
 
 def F(phi, grad_phi, u_moy, grad_u_moy, mu, rho):
@@ -270,8 +267,8 @@ def F(phi, grad_phi, u_moy, grad_u_moy, mu, rho):
         """
         """
         D = (grad_u_moy + grad_u_moy.swapaxes(1, 2))/2.
-        temp = np.einsum('mce,mied->micd', D, grad_phi)
-        return (mu/rho)*np.sum(np.einsum('micc->mi', temp), axis=0)
+        trace_arg = np.einsum('mce,mied->icd', D, grad_phi)
+        return (2*mu/rho)*np.einsum('icc', trace_arg)
     return F_bar() + F_tilde()
 
 
