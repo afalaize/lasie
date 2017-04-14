@@ -45,10 +45,10 @@ CONFIG = {'vtu_folder': r'F:\TESTS_THOST\cylindre2D_SCC_windows\Results',
           'data_names_vtu': [r'Vitesse(m/s)',
                              r'MasseVolumique(kg/m3)',
                              r'Eta'],
-          'threshold': 1e-2,  # 1e-2 equiv 5 modes
-          'dt': 0.01,  # original: 0.01s
-          'tend': 52.5,  #original: 52.5s
-          'theta': 1.,
+          'threshold': 1e-2,    # 1e-2 equiv 5 modes
+          'dt': 0.01,           # original: 0.01s
+          'tend': 53,         # original: 52.5s
+          'theta': 1.,          # theta scheme
           }
 
 ###############################################################################

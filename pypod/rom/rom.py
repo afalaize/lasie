@@ -172,8 +172,8 @@ def A(phi):
         A[i, j] = phi[m, i, c]*phi[m, j, c]
 
     """
-#    return np.einsum('mic,mjc->ij', phi, phi)
-    return np.eye(phi.shape[1])
+    return np.einsum('mic,mjc->ij', phi, phi)
+#    return np.eye(phi.shape[1])
 
 
 def B(phi, grad_phi, u_moy, grad_u_moy, mu, rho):
@@ -203,8 +203,8 @@ def B(phi, grad_phi, u_moy, grad_u_moy, mu, rho):
             b_bar[i, j] =  (u_moy[m, d]*grad_phi[m, j, d, c] +
                             phi[m, j, d]*grad_u_moy[m, d, c])*phi[m, i , c]
         """
-        t1 = np.einsum('md,mjdc->mjc', u_moy, grad_phi)
-        t2 = np.einsum('mjd,mdc->mjc', phi, grad_u_moy)
+        t1 = np.einsum('md,mjcd->mjc', u_moy, grad_phi)
+        t2 = np.einsum('mjd,mcd->mjc', phi, grad_u_moy)
         return np.einsum('mjc,mic->ij', t1 + t2, phi)
 
     def B_tilde():
@@ -225,7 +225,7 @@ def B(phi, grad_phi, u_moy, grad_u_moy, mu, rho):
                               phi[m, j, d]*grad_u_moy[m, d, c])*phi[m, i , c]
         """
         D = (grad_phi + grad_phi.swapaxes(2, 3))/2.
-        trace_arg = np.einsum('mjce,mied->ijcd', D, grad_phi)
+        trace_arg = np.einsum('mjce,mide->ijcd', D, grad_phi)
         return (2*mu/rho)*np.einsum('ijcc->ij', trace_arg)
 
     return B_bar() + B_tilde()
@@ -252,7 +252,7 @@ def C(phi, grad_phi):
         C[i, j, k] = phi[m, k, c]*gradphi[m, j, c, d]*phi[m, i, d]
 
     """
-    temp = np.einsum('mjc,mkcd->mjkd', phi, grad_phi)
+    temp = np.einsum('mjc,mkdc->mjkd', phi, grad_phi)
     return np.einsum('mjkd,mid->ijk', temp, phi)
 
 
@@ -261,13 +261,13 @@ def F(phi, grad_phi, u_moy, grad_u_moy, mu, rho):
     def F_bar():
         """
         """
-        return np.einsum('mc,mcd,mid->i', u_moy, grad_u_moy, phi)
+        return np.einsum('mc,mdc,mid->i', u_moy, grad_u_moy, phi)
 
     def F_tilde():
         """
         """
         D = (grad_u_moy + grad_u_moy.swapaxes(1, 2))/2.
-        trace_arg = np.einsum('mce,mied->icd', D, grad_phi)
+        trace_arg = np.einsum('mce,mide->icd', D, grad_phi)
         return (2*mu/rho)*np.einsum('icc', trace_arg)
     return F_bar() + F_tilde()
 

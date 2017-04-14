@@ -41,8 +41,8 @@ actions = {'ALL': False,
            'ts2data': False,
            'data2meanAndFluc': False,
            'fluc2Corr': False,
-           'corr2basis': True,
-           'gradients': True,
+           'corr2basis': False,
+           'gradients': False,
            'writeVtu': False,
            'Thost_temporal_coeffs': True,
            'rom': True
@@ -60,10 +60,9 @@ CONFIG = {'vtu_folder': r'F:\TESTS_THOST\cylindre2D_SCC_windows\Results',
                              r'Eta'],
           'h': (0.005, )*3,
           'threshold': 1e-2,
-          'dt': None,
-          'istart': None,
-          'tend': None,
-          'theta': 1.,
+          'dt': 0.01,
+          'tend': 52.5,
+          'theta': .5,
           'load': {'imin': 20, 'imax': 270, 'decim': 1},
           }
 
@@ -288,8 +287,7 @@ if __name__ is '__main__':
                                  CONFIG['hdf_path_meanGradient'], mu, rho,
                                  CONFIG['hdf_path_F'])
         rom = ReducedOrderModel(CONFIG)
-        rom.run(dt=CONFIG['dt'], tend=CONFIG['tend'], 
-                istart=CONFIG['istart'], theta=CONFIG['theta'])
+        rom.run(dt=CONFIG['dt'], tend=CONFIG['tend'], theta=CONFIG['theta'])
         for i in range(rom.npod()):
             plt.figure()
             plt.plot(rom.ts.times, rom.c_fom(i), ':o', label='fom')
