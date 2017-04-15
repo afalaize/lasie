@@ -117,7 +117,13 @@ def pvd2ListOfFiles(pvd_path):
     folder = pvd_path[:pvd_path.rfind(os.sep)]
     listOfFiles = list()
     for elem in pvdtree.getiterator('DataSet'):
-        listOfFiles.append(folder + os.sep + elem.attrib['file'])
+        path = elem.attrib['file']
+        istartname = path.rfind(os.sep)
+        if istartname == -1:
+            istartname = 0
+        else:
+            istartname += 1
+        listOfFiles.append(folder + os.sep + path[istartname:])
     # WARNING: we remove duplicate filenames
     return list(OrderedDict.fromkeys(listOfFiles))
 

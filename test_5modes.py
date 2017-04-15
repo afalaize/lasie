@@ -47,7 +47,7 @@ CONFIG = {'vtu_folder': r'F:\TESTS_THOST\cylindre2D_SCC_windows\Results',
                              r'Eta'],
           'threshold': 1e-2,    # 1e-2 equiv 5 modes
           'dt': 0.01,           # original: 0.01s
-          'tend': 53,         # original: 52.5s
+          'tend': 52.5,         # original: 52.5s
           'theta': 1.,          # theta scheme
           }
 

@@ -159,7 +159,7 @@ def fluc2CorrMatrix(hdf_path_flucDataMatrix, hdf_path_CorrMatrix,
 
 
 def computePODBasis(hdf_path_CorrMatrix, hdf_path_flucDataMatrix,
-                    hdf_path_podBasis, threshold=1e-6,
+                    hdf_path_podBasis, threshold=1e-6, nmax=None,
                     hdf_path_weightingMatrix=None):
     """
     build the POD basis from the snapshots (self.basis)
@@ -169,6 +169,8 @@ def computePODBasis(hdf_path_CorrMatrix, hdf_path_flucDataMatrix,
     fluc = HDFData(hdf_path_flucDataMatrix, openFile=True)
     npod = truncatedNpod(computeModesEnergy(C_data.eigen_vals[:, 0]),
                          threshold=threshold)
+    if nmax is not None:
+        npod=nmax
 
     # Define POD basis
     basis = np.einsum('mtc,ti->mic', fluc.get_single_data(),

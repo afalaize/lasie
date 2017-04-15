@@ -115,7 +115,8 @@ class ReducedOrderModel(object):
         self.coeffs.append(self.Thost_temporal_coeffs.get_single_data()[0, :])
         delta_coeff = np.zeros(self.npod())
 
-        bar = progressbar.ProgressBar(widgets=[progressbar.Timer(), ' ',
+        bar = progressbar.ProgressBar(widgets=['ROM',
+                                               progressbar.Timer(), ' ',
                                                progressbar.Bar(), ' (',
                                                progressbar.ETA(), ')\n', ])
 
@@ -176,7 +177,14 @@ def A(phi):
 #    return np.eye(phi.shape[1])
 
 
-def B(phi, grad_phi, u_moy, grad_u_moy, mu, rho):
+def mu_stab(mu, stab, nmodes):
+    return mu*(1+stab*(1+np.array(range(nmodes))))
+    
+
+def B(phi, grad_phi, u_moy, grad_u_moy, mu, rho, stab=0):
+    nmodes = phi.shape[1]
+    mu_modes = mu_stab(mu, stab, nmodes)
+    print(mu_modes)
 
     def B_bar():
         """
@@ -226,7 +234,7 @@ def B(phi, grad_phi, u_moy, grad_u_moy, mu, rho):
         """
         D = (grad_phi + grad_phi.swapaxes(2, 3))/2.
         trace_arg = np.einsum('mjce,mide->ijcd', D, grad_phi)
-        return (2*mu/rho)*np.einsum('ijcc->ij', trace_arg)
+        return (2./rho)*np.einsum('ijcc,i->ij', trace_arg, mu_modes)
 
     return B_bar() + B_tilde()
 
@@ -256,7 +264,11 @@ def C(phi, grad_phi):
     return np.einsum('mjkd,mid->ijk', temp, phi)
 
 
-def F(phi, grad_phi, u_moy, grad_u_moy, mu, rho):
+def F(phi, grad_phi, u_moy, grad_u_moy, mu, rho, stab=0):
+    nmodes = phi.shape[1]
+    mu_modes = mu_stab(mu, stab, nmodes)
+    print(mu_modes)
+
 
     def F_bar():
         """
@@ -268,7 +280,7 @@ def F(phi, grad_phi, u_moy, grad_u_moy, mu, rho):
         """
         D = (grad_u_moy + grad_u_moy.swapaxes(1, 2))/2.
         trace_arg = np.einsum('mce,mide->icd', D, grad_phi)
-        return (2*mu/rho)*np.einsum('icc', trace_arg)
+        return (2./rho)*np.einsum('icc,i->i', trace_arg, mu_modes)
     return F_bar() + F_tilde()
 
 
@@ -288,6 +300,7 @@ def build_rom_coefficients_A(hdf_path_podBasis, hdf_path_A):
 
 def build_rom_coefficients_B(hdf_path_podBasis, hdf_path_podBasisGradient,
                              hdf_path_mean, hdf_path_meanGradient, mu, rho,
+                             stab,
                              hdf_path_B):
     """
     """
@@ -300,7 +313,7 @@ def build_rom_coefficients_B(hdf_path_podBasis, hdf_path_podBasisGradient,
                 basis_gradient.get_single_data(),
                 mean.get_single_data(),
                 mean_gradient.get_single_data(),
-                mu, rho)
+                mu, rho, stab)
 
     dumpArrays2Hdf([array_B, ], ['b', ], hdf_path_B)
 
@@ -323,6 +336,7 @@ def build_rom_coefficients_C(hdf_path_podBasis, hdf_path_podBasisGradient,
 
 def build_rom_coefficients_F(hdf_path_podBasis, hdf_path_podBasisGradient,
                              hdf_path_mean, hdf_path_meanGradient, mu, rho,
+                             stab,
                              hdf_path_F):
     """
     """
@@ -335,7 +349,7 @@ def build_rom_coefficients_F(hdf_path_podBasis, hdf_path_podBasisGradient,
                 basis_gradient.get_single_data(),
                 mean.get_single_data(),
                 mean_gradient.get_single_data(),
-                mu, rho)
+                mu, rho, stab)
     dumpArrays2Hdf([array_F, ], ['f', ], hdf_path_F)
 
     for hdf in [basis, basis_gradient, mean, mean_gradient]:
