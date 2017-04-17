@@ -50,29 +50,42 @@ def vtu2hdf_snapshots_ROM(rom):
     pvd2Hdf(pvdpath, folder, ['vitesse1'])
     
     
-def reconstruct_error(rom):
+def reconstruct_snapshots_error(rom):
     config = rom.config
-    basis = HDFData(config['hdf_path_podBasis'], openFile=True).get_single_data()
+    HDFbasis = HDFData(config['hdf_path_podBasis'], openFile=True)
+    name = HDFbasis.names[0]
+    basis = HDFbasis.get_single_data()
+    HDFbasis.closeHdfFile()
+    
+    ts = HDFTimeSerie(config['interp_hdf_folder'])
+    ts.openAllFiles()
+    
     mean = HDFData(config['hdf_path_mean'], openFile=True).get_single_data()
     grid = HDFData(config['hdf_path_grid'], openFile=True)
-    folder = 'reconstructed_ROM'
-    pvd_file = open(config['vtu_folder'] + os.sep + folder + os.sep + 'vitesse.pvd', 'w')
+    folder = 'Error'
+    pvd_file = open(config['vtu_folder'] + os.sep + folder + os.sep + 'error.pvd', 'w')
     pvd_file.write("""<VTKFile type="Collection" version="0.1" byte_order="LittleEndian">
     <Collection>""")
     template = '\n        <DataSet timestep="{0}" group="" part="0" file="{1}"/>'
  
-    for i, coeffs in enumerate(rom.c_rom()[:-2]):
-        v = mean + np.einsum('i,mic->mc', coeffs, basis)
-        vtu_path = config['vtu_folder'] + os.sep + folder+ os.sep + 'vitesse_{}.vtu'.format(i+1)
+    listOfHdfFiles = open(config['vtu_folder'] + os.sep + folder + os.sep + 'listOfHdfFiles.txt' , 'w')
+    for i, d in enumerate(ts.data):
+        v_rom = mean + np.einsum('i,mic->mc', rom.c_rom()[i], basis)
+        error = np.abs(v_rom-d.vitesse[:])
+        vtu_path = config['vtu_folder'] + os.sep + folder+ os.sep + 'error_{}.vtu'.format(i+1)
         write_vtu(grid.mesh[:], grid.original_shape,
-                  [v, ],
-                  'vitesse', vtu_path)
+                  [error, ],
+                  'error', vtu_path)
         pvd_file.write(template.format(rom.times[i], vtu_path))
+        hdf_path = config['vtu_folder'] + os.sep + folder+ os.sep + 'error_{}.hdf5'.format(i+1)
+        dumpArrays2Hdf([error, ], [name, ], hdf_path)
+        listOfHdfFiles.write('{} {}\n'.format(rom.times[i], hdf_path))
     pvd_file.write("""
     </Collection>
 </VTKFile>""")
     pvd_file.close()
     grid.closeHdfFile()
+    listOfHdfFiles.close()     
 
 
 def reconstruct_snapshots_FOM(rom):
