@@ -62,7 +62,7 @@ CONFIG = {'vtu_folder': r'F:\TESTS_THOST\cylindre2D_SCC_windows\Results',
           'h': (0.005, )*3,
           'threshold': 0,
           'nmax': 10,
-          'stab': 0.2,
+          'stab': 0.,
           'dt': 0.01,
           'tend': 52.5,
           'theta': .5,
@@ -342,7 +342,7 @@ def run_rom():
         plt.title('mode {}'.format(i+1))
         plt.legend()
         plt.grid('on')
-        plt.savefig('mode{}_dt={:.2f}_rho={:.2f}_mu={:.5f}.png'.format(i+1, rom.dt, rho, mu), 
+        plt.savefig('mode{}_dt={:.2f}_rho={:.2f}_mu={:.5f}_stab={:.1f}.png'.format(i+1, rom.dt, rho, mu, CONFIG['stab']), 
                     format='png')
         plt.show()
     rom.close_hdfs()
