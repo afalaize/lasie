@@ -14,7 +14,7 @@ plt.close('all')
 
 lims = [(0, 1),
         (0, 1)]
-h = (1e-2, 1e-2)
+h = (1e-1, 1e-1)
 
 grid, h = grids.generate(lims, h)
 mesh = grids.to_mesh(grid)
@@ -36,7 +36,7 @@ def basiselements(M):
     return np.concatenate(map(lambda a: a[:, np.newaxis, :], elements),
                           axis=1)
 
-basis = basiselements(9)
+basis = basiselements(3)
 print('basis shape = {}'.format(basis.shape))
 p, P = deim.indices(basis)
 
