@@ -27,7 +27,7 @@ def a(phi):
         a[m, i, j] = phi[m, i, c]*phi[m, j, c]
 
     """
-    return np.einsum('mic,mjc->mij', phi, phi)
+    return np.einsum('mic, mjc->mij', phi, phi)
 
 
 def A(rho, phi):
