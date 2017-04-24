@@ -45,20 +45,6 @@ def basis2BasisGradient(hdf_path_basis, hdf_path_basisgradient, hdf_path_grid):
     basis.closeHdfFile()
 
 
-def formatedGradient(array, grid_shape, h):
-    """
-    return the gradient of the grid array
-    """
-    array_shape = array.shape
-    out_grad = np.zeros((array_shape[0], array_shape[1], grid_shape[0]))
-    for i in range(array_shape[1]):
-        ai = array[:, i].reshape(grid_shape[1:], order=ORDER)
-        gi = np.gradient(ai, *h, edge_order=2)
-        for j in range(grid_shape[0]):
-            out_grad[:, i, j] = gi[j].reshape((np.prod(grid_shape[1:]), ), order=ORDER)
-    return out_grad
-
-
 def ts2HdfDataMatrix(ts, data_name, hdf_path, imin=0, imax=None, decim=1.):
     dataL = list()
     if imax is None:
