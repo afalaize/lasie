@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from ..misc.tools import norm
 
-NCOLS = 3
+NCOLS = 1
 CMAP = 'RdBu_r'
 SIZE = (6, 8)
 FORMAT = 'png'
@@ -24,15 +24,29 @@ PARAMS = {'left': 0.05,
           'hspace': None}
 CBAR = 'global'
 
+OPTIONS = {'ncols': NCOLS,
+           'cmap': CMAP,
+           'size': SIZE,
+           'format': FORMAT,
+           'axes': AXES,
+           'params': PARAMS,
+           'cbar': CBAR,
+           }
 
-def plot2d(a, shape, title=None, render='module', savename=None):
+
+def plot2d(a, shape, title=None, render='module', savename=None, options=None):
+
+    opts = OPTIONS
+    if options is None:
+        options = {}
+    opts.update(options)
 
     nx, nm, nc = a.shape
-    nrows = int(np.ceil(nm/float(NCOLS)))
-    fig = plt.figure(figsize=SIZE)
+    nrows = int(np.ceil(nm/float(opts['ncols'])))
+    fig = plt.figure(figsize=opts['size'])
 
     if title is not None:
-        plt.suptitle('MODELE COMPLET')
+        plt.suptitle(title)
 
     all_v = list()
     minmax = (float('Inf'), -float('Inf'))
@@ -47,17 +61,18 @@ def plot2d(a, shape, title=None, render='module', savename=None):
         all_v.append(v)
     for ind, v in enumerate(all_v):
         v_g = v.reshape(map(int, shape[1:]))
-        plt.subplot(nrows, NCOLS, ind+1)
+        plt.subplot(nrows, opts['ncols'], ind+1)
         plt.title('${}$'.format(ind))
-        im = plt.imshow(v_g.T, cmap=CMAP, vmin=minmax[0], vmax=minmax[1])
+        im = plt.imshow(v_g.T, cmap=opts['cmap'],
+                        vmin=minmax[0], vmax=minmax[1])
         plt.axis('off')
-        if CBAR == 'individual':
+        if opts['cbar'] == 'individual':
             plt.colorbar()
-    if not CBAR == 'individual':
-        cbar_ax = fig.add_axes(AXES)
+    if not opts['cbar'] == 'individual':
+        cbar_ax = fig.add_axes(opts['axes'])
         fig.colorbar(im, cax=cbar_ax, label=r'$v_x$ (m/s)')
     plt.tight_layout()
-    plt.subplots_adjust(**PARAMS)
+    plt.subplots_adjust(**opts['params'])
     if savename is not None:
-        plt.savefig('{}.{}'.format(savename, FORMAT),
-                    format=FORMAT)
+        plt.savefig('{}.{}'.format(savename, opts['format']),
+                    format=opts['format'])
