@@ -146,5 +146,8 @@ reconstructed_NLsnapshots = np.concatenate(map(lambda a: a[:, np.newaxis, :],
                                                reconstructed_NLsnapshots),
                                            axis=1)
     
-plots.plot2d(NLsnapshots[:, :9, :], grid_shape, options={'ncols':3}, render=0)
-plots.plot2d(reconstructed_NLsnapshots[:, :9, :], grid_shape, options={'ncols':3}, render=0)
+plots.plot2d(snapshots[:, :9, :], grid_shape, options={'ncols':3}, render=1)
+plots.plot2d(reconstructed_snapshots[:, :9, :], grid_shape, options={'ncols':3}, render=1)
+
+plots.plot2d(NLsnapshots[:, :9, :], grid_shape, options={'ncols':3}, render=1)
+plots.plot2d(reconstructed_NLsnapshots[:, :9, :], grid_shape, options={'ncols':3}, render=1)
