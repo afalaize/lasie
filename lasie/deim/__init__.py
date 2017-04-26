@@ -6,6 +6,6 @@ Created on Mon Apr 24 17:49:04 2017
 @author: Falaize
 """
 
-from .tools import indices
+from .tools import indices, interpolated_func
 
-__all__ = ['indices']
+__all__ = ['indices', 'interpolated_func']

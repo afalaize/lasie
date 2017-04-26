@@ -98,6 +98,25 @@ def jacobian(F, X):
     shape = map(int, jac.shape)
     return Array(jac, shape)
 
+    
+def extend_projector_dimension(P, nc):
+    return np.concatenate(map(lambda a: a[:, :, np.newaxis], (P,)*nc),
+                          axis = 2)
+    
+
+    
+def compute_c(P, B, u):
+    nx, ne, nc = B.shape
+    assert P.shape == (nx, ne)
+    assert u.shape == (nx, nc)
+    
+    nd_P = extend_projector_dimension(P, nc)
+    M = np.einsum('xic,xjc->ij', nd_P, B)
+    
+    Pu = np.einsum('xic,xc->i', nd_P, u)
+    c = np.einsum('ij,j->i', np.linalg.inv(M), Pu)
+    
+    return c
 
 def indices(basis):
     """
@@ -155,26 +174,23 @@ via discrete empirical interpolation. SIAM Journal on Scientific Computing, \
     # partial projector (one element)
     P = idcol(pi, nx)[:, np.newaxis]
 
-    all_c = [np.zeros(0), ]
+    all_c = list()
     for i in range(1, ne):
 
         # i-th basis element
         bi = basis[:, i, :]
 
-        # implicite function and jacobian
-        obj, grad, hess = objective_function(P, B, bi)
-
-        # solve implicite function
-        all_c[-1] = np.concatenate((all_c[-1], np.ones(1)))
-        print('\nElement {}:\n    init obj(c)={}'.format(i+1, obj(all_c[-1])))
-        res = minimize(obj, all_c[-1], jac=grad, hess=hess,
-                       method='Newton-CG',
-                       options={'xtol': TOL, 'disp': True},
-                       tol=TOL)
-        c = res.x
-        all_c[-1] = c
+#        # implicite function and jacobian
+#        obj, grad, hess = objective_function(P, B, bi)
+#
+#        # solve implicite function
+#        res = minimize(obj, all_c[-1], jac=grad, hess=hess,
+#                       method='Newton-CG',
+#                       options={'xtol': TOL, 'disp': True},
+#                       tol=TOL)
+#        c = res.x
+        c = compute_c(P, B, bi)
         all_c.append(c)
-        print('    final obj(c)={}'.format(obj(c)))
 
         # projected partial basis reconstruction error
         r = bi - np.einsum('ijk,j->ik', B, c)
@@ -194,4 +210,74 @@ via discrete empirical interpolation. SIAM Journal on Scientific Computing, \
     # return indices and projector
     return p, P, all_c
 
-# ----------------------------  DEIM MATRICES  ------------------------- #
+# ----------------------------  DEIM FUNCTION  ------------------------- #
+
+def reconstruction_matrix(P, B):
+    nx, ne, nc = B.shape
+    assert P.shape == (nx, ne)
+    nd_P = extend_projector_dimension(P, nc)    
+    M = np.einsum('xic,xjc->ij', nd_P, B)    
+    return np.einsum('xic,ij->xjc', B, np.linalg.inv(M))
+
+
+def interpolated_func(func, P, Phi, Psi, mean_phi, mean_psi):
+    """
+Return the DEIM interpolation of function func with DEIM projector P and POD 
+basis Phi and Psi
+
+Parameters
+----------
+
+func: function
+    Function to interpolate :math:`\mathbf f: \mathbb R^N\rightarrow \
+\mathbb R^N`. 
+
+P: array_like
+    DEIM projector
+    
+Phi: array_like
+    POD basis for the function variable    .
+
+Psi: array_like
+    POD basis for the function evaluation.
+    
+Return
+-------
+
+deimfunc: function
+    Interpolated function :math:`\tilde{\mathbf f}: \mathbb R^M\rightarrow \
+\mathbb R^N` with M << N.
+    """
+    
+    nx, ne, nc = Phi.shape    
+    assert P.shape == (nx, ne)
+    assert func(np.array([(1., )*nc, ])).shape == (1, nc)
+    
+    projector = np.einsum('xi,xjc->ijc', P, Phi)
+    projected_mean = np.einsum('xi,xc->ic', P, mean_phi)
+    assert projector.shape == (ne, ne ,nc)
+    
+    M = reconstruction_matrix(P, Psi)
+    assert M.shape == (nx, ne, nc)
+    
+    def deim_func(c):
+        assert c.shape == (ne, )
+        return np.einsum('xec,ec->xc',
+                         M, func(projected_mean+np.einsum('ejc,j->ec', projector, c)))
+    deim_func.func_doc = """
+DEIM interpolation of nonlinear function.
+
+Parameter
+---------
+
+c: array_like with shape ({0}, )
+    Activation coefficients for the function argument basis.
+    
+Return 
+------
+
+res: array_like with shape ({1}, {2})
+    Evaluation of func on specially selected arguments.
+""".format(ne, nx, nc)
+    return deim_func
+    

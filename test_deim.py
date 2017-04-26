@@ -15,12 +15,13 @@ import matplotlib.pyplot as plt
 from lasie.config import ORDER
 
 
+plt.close('all')
 
 # --------------------  CONSTRUCT SOLUTION SNAPSHOTS -------------------- #
 
 # Time domain
 tmax = 1.
-nt = 50
+nt = 200
 times = np.linspace(0, tmax, nt)
 
 # Spatial domain is a box
@@ -88,16 +89,62 @@ plots.plot2d(NLsnapshots[:, 0:nt:int(nt/9.)+1, :],
 # --------------------  CONSTRUCT POD BASIS  -------------------- #
 
 mean, fluc = pod.meanfluc(snapshots)
-basis = pod.compute_basis(fluc, nmax=5)
+basis = pod.compute_basis(fluc)
 plots.plot2d(basis[:, :9, :], grid_shape, options={'ncols':3})
 
+nx, ne, nc = basis.shape
+
 NLmean, NLfluc = pod.meanfluc(NLsnapshots)
-NLbasis = pod.compute_basis(NLfluc, nmax=5)
+NLbasis = pod.compute_basis(NLfluc, threshold=0, nmax=ne)
 plots.plot2d(NLbasis[:, :9, :], grid_shape, options={'ncols':3})
 
+
+# --------------------  CONSTRUCT DEIM ---------------- #
+
 p, P, c = deim.indices(NLbasis)
+deim_func = deim.interpolated_func(func, P, basis, NLbasis, mean, NLmean)
 
+if False:
+    for im, ix in enumerate(p):
+    #    plt.axis((lims[0]+(-lims[1][1], lims[1][0])))
+        xi = mesh[ix, :].tolist()
+        bi = NLbasis[:, im, :]
+        if im > 0:
+            tilde_bi = np.einsum('xec,e->xc', NLbasis[:, :im, :], c[im-1])
+        else:
+            tilde_bi = 0*bi
+        plt.figure()
+        plt.imshow(misc.norm(bi).reshape(grid.shape[1:], order=ORDER).T, cmap='RdBu_r')
+        plt.colorbar()
+        plt.title('original mode {}'.format(im+1))
+        plt.figure()
+        plt.imshow(misc.norm(tilde_bi).reshape(grid.shape[1:], order=ORDER).T, cmap='RdBu_r')
+        plt.colorbar()
+        plt.title('reconstruction mode {}'.format(im+1))
+        plt.figure()
+        array = misc.norm(bi-tilde_bi).reshape(grid.shape[1:], order=ORDER)
+        plt.imshow(array.T, cmap='BuPu')
+        plt.colorbar()
+        n1, n2 = array.T.shape
+        plt.plot(xi[0]*n1, xi[1]*n2, 'Xg')
+        plt.text(xi[0]*n1, xi[1]*n2, str(im+1), fontsize=18)
 
+# -------------------- RECONSTRUCT SNAPSHOTS ---------------- #
 
-
-
+coeffs = list()
+reconstructed_snapshots = list()
+reconstructed_NLsnapshots = list()
+for a in np.swapaxes(snapshots, 0, 1):
+    coeffs.append(np.einsum('xc,xic->i', a, basis))
+    reconstructed_snapshots.append(mean+np.einsum('xic,i->xc', basis, coeffs[-1]))
+    reconstructed_NLsnapshots.append(NLmean+deim_func(coeffs[-1]))
+    
+reconstructed_snapshots = np.concatenate(map(lambda a: a[:, np.newaxis, :], 
+                                               reconstructed_snapshots),
+                                           axis=1)
+reconstructed_NLsnapshots = np.concatenate(map(lambda a: a[:, np.newaxis, :], 
+                                               reconstructed_NLsnapshots),
+                                           axis=1)
+    
+plots.plot2d(NLsnapshots[:, :9, :], grid_shape, options={'ncols':3}, render=0)
+plots.plot2d(reconstructed_NLsnapshots[:, :9, :], grid_shape, options={'ncols':3}, render=0)
