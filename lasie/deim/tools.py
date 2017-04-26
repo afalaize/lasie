@@ -95,7 +95,8 @@ def jacobian(F, X):
         for j in range(nx):
             jac[i, j] = F[i].diff(X[j])
     assert jac.shape == (nf, nx)
-    return Array(jac)
+    shape = map(int, jac.shape)
+    return Array(jac, shape)
 
 
 def indices(basis):
@@ -164,7 +165,7 @@ via discrete empirical interpolation. SIAM Journal on Scientific Computing, \
         obj, grad, hess = objective_function(P, B, bi)
 
         # solve implicite function
-        all_c[-1] = np.concatenate((all_c[-1], np.zeros(1)))
+        all_c[-1] = np.concatenate((all_c[-1], np.ones(1)))
         print('\nElement {}:\n    init obj(c)={}'.format(i+1, obj(all_c[-1])))
         res = minimize(obj, all_c[-1], jac=grad, hess=hess,
                        method='Newton-CG',

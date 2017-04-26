@@ -43,6 +43,7 @@ def basiselements(M):
 
 basis = basiselements(5)
 print('basis shape = {}'.format(basis.shape))
+
 p, P, all_c = deim.indices(basis)
 
 options = {'ncols': 3}
@@ -60,9 +61,11 @@ for im, ix in enumerate(p):
     plt.figure()
     plt.imshow(norm(bi).reshape(grid.shape[1:], order=ORDER).T, cmap='RdBu_r')
     plt.colorbar()
+    plt.title('original mode {}'.format(im+1))
     plt.figure()
     plt.imshow(norm(tilde_bi).reshape(grid.shape[1:], order=ORDER).T, cmap='RdBu_r')
     plt.colorbar()
+    plt.title('reconstruction mode {}'.format(im+1))
     plt.figure()
     array = norm(bi-tilde_bi).reshape(grid.shape[1:], order=ORDER)
     plt.imshow(array.T, cmap='BuPu')

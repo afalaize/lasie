@@ -13,7 +13,7 @@ from ..misc.tools import norm
 
 NCOLS = 1
 CMAP = 'RdBu_r'
-SIZE = (6, 8)
+SIZE = None
 FORMAT = 'png'
 AXES = [0.88, 0.125, 0.01, 0.75]
 PARAMS = {'left': 0.05,
@@ -34,7 +34,37 @@ OPTIONS = {'ncols': NCOLS,
            }
 
 
-def plot2d(a, shape, title=None, render='module', savename=None, options=None):
+def plot2d(a, shape, title=None, render='magnitude', savename=None, options=None):
+    """
+Parameters
+----------
+
+a : array_like with shape (nx, ne, nc)
+    array to plot where nx is the number of spatial discretization points, ne
+    is the number of elements to plot, and nc is the number of spatial 
+    components.
+    
+shape : list of int
+    Original grid shape (i.e. as returned by lasis.grids.generate).
+    
+title : string (optional)
+
+render : 'magnitude' or int (optional)
+    Render the magnitude or a specific field component.
+
+savename : string (optional)
+
+options : dictionary (optional)
+    options = {'ncols': NCOLS,
+               'cmap': CMAP,
+               'size': SIZE,
+               'format': FORMAT,
+               'axes': AXES,
+               'params': PARAMS,
+               'cbar': CBAR,
+               }
+    """
+    
 
     opts = OPTIONS
     if options is None:
@@ -52,7 +82,7 @@ def plot2d(a, shape, title=None, render='module', savename=None, options=None):
     minmax = (float('Inf'), -float('Inf'))
     for m in range(nm):
         d = a[:, m]
-        if render == 'module':
+        if render == 'magnitude':
             v = norm(d)
         else:
             assert isinstance(render, int)
