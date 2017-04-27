@@ -220,7 +220,7 @@ def reconstruction_matrix(P, B):
     return np.einsum('xic,ij->xjc', B, np.linalg.inv(M))
 
 
-def interpolated_func(func, P, Phi, Psi, mean_phi, mean_psi):
+def interpolated_func(func, P, Phi, Psi, mean_phi=None, mean_psi=None):
     """
 Return the DEIM interpolation of function func with DEIM projector P and POD 
 basis Phi and Psi
@@ -249,10 +249,18 @@ deimfunc: function
 \mathbb R^N` with M << N.
     """
     
+    
     nx, ne, nc = Phi.shape    
+
     assert P.shape == (nx, ne)
     assert func(np.array([(1., )*nc, ])).shape == (1, nc)
     
+    if mean_phi is None:
+        mean_phi = np.zeros((nx, nc))
+        
+    if mean_psi is None:
+        mean_psi = np.zeros((nx, nc))
+        
     projector = np.einsum('xi,xjc->ijc', P, Phi)
     projected_mean = np.einsum('xi,xc->ic', P, mean_phi)
     assert projector.shape == (ne, ne ,nc)

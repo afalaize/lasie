@@ -3,6 +3,9 @@
 Created on Wed Apr 26 10:40:13 2017
 
 @author: afalaize
+
+Test sur le champ total (pas le champ fluctuant)
+
 """
 
 from lasie import deim
@@ -17,7 +20,7 @@ from lasie.config import ORDER
 
 plt.close('all')
 
-# --------------------  CONSTRUCT SOLUTION SNAPSHOTS -------------------- #
+# %% --------------------  CONSTRUCT SOLUTION SNAPSHOTS -------------------- #
 
 # Time domain
 tmax = 1.
@@ -47,16 +50,17 @@ def snapshot(t):
     """
     Return 2D snapshots defined over a 2D domain.
     """
-    ft = 1;
+    # parameters
+    ft = 1  #  temporal frequency
     a = 1
     b = 50
     coeff_t = np.sin(2*np.pi*ft*t)
-    fx = 3.5*coeff_t;
+    fx = 3.5/(2+coeff_t)  # spatial frequency
 
     sin = np.sin(fx*np.pi*mesh[:, 0])*np.sin(fx*np.pi*mesh[:, 1])
     rosen = (a*coeff_t-mesh[:, 0])**2 + b*(mesh[:, 1]-mesh[:, 0]**2)**2
     component1 = 100*sin*rosen*coeff_t
-    component2 = rosen*(2+np.tanh(np.pi*(mesh[:, 0]-L1/2.)/(L1/3.)*coeff_t))
+    component2 = rosen*(2+np.tanh(np.pi*(mesh[:, 0]-L1/2.)/(L1/3.)))
     
     return np.concatenate(map(lambda a: a[:, np.newaxis], 
                               (component1, component2)),
@@ -67,11 +71,11 @@ snapshots = np.concatenate(map(lambda a: a[:, np.newaxis, :], snapshots),
                           axis=1)
     
 plots.plot2d(snapshots[:, 0:nt:int(nt/9.)+1, :], 
-             grid_shape, options={'ncols':3})
+             grid_shape, options={'ncols':3}, title='Snapshots')
 
-# --------------------  CONSTRUCT NONLINEAR SNAPSHOTS -------------------- #
+# %% --------------------  CONSTRUCT NONLINEAR SNAPSHOTS -------------------- #
 def func(snapshot):
-    eps = 1e4
+    eps = 1e0
     component1 = np.exp(-np.abs(np.tanh(np.pi*(1+snapshot[:, 0])/eps)*snapshot[:, 1]))
     component2 = np.exp(-np.abs(np.tanh(np.pi*snapshot[:, 1]/eps)*snapshot[:, 0]))
     return np.concatenate(map(lambda a: a[:, np.newaxis], 
@@ -83,28 +87,31 @@ NLsnapshots = np.concatenate(map(lambda a: a[:, np.newaxis, :], NLsnapshots),
                              axis=1)
 
 plots.plot2d(NLsnapshots[:, 0:nt:int(nt/9.)+1, :], 
-             grid_shape, options={'ncols':3})
+             grid_shape, options={'ncols':3}, title='NL Snapshots')
 
 
-# --------------------  CONSTRUCT POD BASIS  -------------------- #
+# %% --------------------  CONSTRUCT POD BASIS  -------------------- #
 
-mean, fluc = pod.meanfluc(snapshots)
-basis = pod.compute_basis(fluc)
-plots.plot2d(basis[:, :9, :], grid_shape, options={'ncols':3})
+# mean, fluc = pod.meanfluc(snapshots)
+# basis = pod.compute_basis(fluc)
+basis = pod.compute_basis(snapshots)
+plots.plot2d(basis[:, :9, :], grid_shape, options={'ncols':3}, title='Basis')
 
 nx, ne, nc = basis.shape
 
-NLmean, NLfluc = pod.meanfluc(NLsnapshots)
-NLbasis = pod.compute_basis(NLfluc, threshold=0, nmax=ne)
-plots.plot2d(NLbasis[:, :9, :], grid_shape, options={'ncols':3})
+# NLmean, NLfluc = pod.meanfluc(NLsnapshots)
+# NLbasis = pod.compute_basis(NLfluc, threshold=0, nmax=ne)
+
+NLbasis = pod.compute_basis(NLsnapshots, threshold=0, nmax=ne)
+plots.plot2d(NLbasis[:, :9, :], grid_shape, options={'ncols':3}, title='NL Basis')
 
 
-# --------------------  CONSTRUCT DEIM ---------------- #
+# %% --------------------  CONSTRUCT DEIM ---------------- #
 
 p, P, c = deim.indices(NLbasis)
-deim_func = deim.interpolated_func(func, P, basis, NLbasis, mean, NLmean)
+deim_func = deim.interpolated_func(func, P, basis, NLbasis)
 
-if False:
+if True:
     for im, ix in enumerate(p):
     #    plt.axis((lims[0]+(-lims[1][1], lims[1][0])))
         xi = mesh[ix, :].tolist()
@@ -123,21 +130,21 @@ if False:
         plt.title('reconstruction mode {}'.format(im+1))
         plt.figure()
         array = misc.norm(bi-tilde_bi).reshape(grid.shape[1:], order=ORDER)
-        plt.imshow(array.T, cmap='BuPu')
+        plt.imshow(array.T, cmap='Reds')
         plt.colorbar()
         n1, n2 = array.T.shape
         plt.plot(xi[0]*n1, xi[1]*n2, 'Xg')
         plt.text(xi[0]*n1, xi[1]*n2, str(im+1), fontsize=18)
 
-# -------------------- RECONSTRUCT SNAPSHOTS ---------------- #
+# %% -------------------- RECONSTRUCT SNAPSHOTS ---------------- #
 
 coeffs = list()
 reconstructed_snapshots = list()
 reconstructed_NLsnapshots = list()
 for a in np.swapaxes(snapshots, 0, 1):
     coeffs.append(np.einsum('xc,xic->i', a, basis))
-    reconstructed_snapshots.append(mean+np.einsum('xic,i->xc', basis, coeffs[-1]))
-    reconstructed_NLsnapshots.append(NLmean+deim_func(coeffs[-1]))
+    reconstructed_snapshots.append(np.einsum('xic,i->xc', basis, coeffs[-1]))
+    reconstructed_NLsnapshots.append(deim_func(coeffs[-1]))
     
 reconstructed_snapshots = np.concatenate(map(lambda a: a[:, np.newaxis, :], 
                                                reconstructed_snapshots),
@@ -145,9 +152,14 @@ reconstructed_snapshots = np.concatenate(map(lambda a: a[:, np.newaxis, :],
 reconstructed_NLsnapshots = np.concatenate(map(lambda a: a[:, np.newaxis, :], 
                                                reconstructed_NLsnapshots),
                                            axis=1)
-    
-plots.plot2d(snapshots[:, :9, :], grid_shape, options={'ncols':3}, render=1)
-plots.plot2d(reconstructed_snapshots[:, :9, :], grid_shape, options={'ncols':3}, render=1)
 
-plots.plot2d(NLsnapshots[:, :9, :], grid_shape, options={'ncols':3}, render=1)
-plots.plot2d(reconstructed_NLsnapshots[:, :9, :], grid_shape, options={'ncols':3}, render=1)
+render = 'magnitude'
+plots.plot2d(snapshots[:, 0:nt:int(nt/9.)+1, :], grid_shape, options={'ncols':3}, render=render, 
+             title='Snapshots')
+plots.plot2d(reconstructed_snapshots[:, 0:nt:int(nt/9.)+1, :], grid_shape, 
+             options={'ncols':3}, render=render, title='Reconstructed Snapshots')
+
+plots.plot2d(NLsnapshots[:, 0:nt:int(nt/9.)+1, :], grid_shape, options={'ncols':3}, render=render,
+             title='NL Snapshots')
+plots.plot2d(reconstructed_NLsnapshots[:, 0:nt:int(nt/9.)+1, :], grid_shape, 
+             options={'ncols':3}, render=render, title='Reconstructed NL Snapshots')
