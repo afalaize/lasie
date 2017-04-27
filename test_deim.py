@@ -51,16 +51,16 @@ def snapshot(t):
     Return 2D snapshots defined over a 2D domain.
     """
     # parameters
-    ft = 1  #  temporal frequency
-    a = 1
-    b = 50
+    ft = 2  #  temporal frequency
     coeff_t = np.sin(2*np.pi*ft*t)
-    fx = 3.5/(2+coeff_t)  # spatial frequency
+    a = 1
+    b = 100
+    fx = 1  # spatial frequency
 
     sin = np.sin(fx*np.pi*mesh[:, 0])*np.sin(fx*np.pi*mesh[:, 1])
-    rosen = (a*coeff_t-mesh[:, 0])**2 + b*(mesh[:, 1]-mesh[:, 0]**2)**2
-    component1 = 100*sin*rosen*coeff_t
-    component2 = rosen*(2+np.tanh(np.pi*(mesh[:, 0]-L1/2.)/(L1/3.)))
+    rosen = (a-mesh[:, 0])**2 + b*(mesh[:, 1]-mesh[:, 0]**(2+coeff_t))**2
+    component1 = np.exp(-np.abs(rosen))*np.cos(np.pi*mesh[:, 0]**2)
+    component2 = (rosen*sin/10)-1.5
     
     return np.concatenate(map(lambda a: a[:, np.newaxis], 
                               (component1, component2)),
@@ -155,11 +155,12 @@ reconstructed_NLsnapshots = np.concatenate(map(lambda a: a[:, np.newaxis, :],
 
 render = 'magnitude'
 plots.plot2d(snapshots[:, 0:nt:int(nt/9.)+1, :], grid_shape, options={'ncols':3}, render=render, 
-             title='Snapshots')
+             title='Snapshots', savename='Snapshots')
 plots.plot2d(reconstructed_snapshots[:, 0:nt:int(nt/9.)+1, :], grid_shape, 
-             options={'ncols':3}, render=render, title='Reconstructed Snapshots')
+             options={'ncols':3}, render=render, title='Reconstructed Snapshots', savename='Reconstructed_Snapshots')
 
 plots.plot2d(NLsnapshots[:, 0:nt:int(nt/9.)+1, :], grid_shape, options={'ncols':3}, render=render,
-             title='NL Snapshots')
+             title='NL Snapshots', savename='Original_NL_Snapshots')
 plots.plot2d(reconstructed_NLsnapshots[:, 0:nt:int(nt/9.)+1, :], grid_shape, 
-             options={'ncols':3}, render=render, title='Reconstructed NL Snapshots')
+             options={'ncols':3}, render=render, title='Reconstructed NL Snapshots',
+             savename='Reconstructed_NL_Snapshots')
