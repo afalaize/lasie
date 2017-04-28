@@ -78,14 +78,10 @@ def func(u):
     """
     Nonlinear function defined over a 2D space:
 .. math:: 
-    f:\mathbb R^2\\ni u \mapsto f(u) \in \mathbb R ^2.
+    f:\mathbb R^2\\ni u \mapsto f(u) \in \mathbb R.
     """
-    a1, a2 = 1, 2
     b1, b2 = 3, 4
-    f1 = ((u[:, 0]-a1)**2 + (u[:, 1]-a2)**2)**-0.5-1
-    f2 = np.exp(((u[:, 0]-b1)**2 + (u[:, 1]-b2)**2)/1e2-1)-0.5
-    return np.concatenate(map(lambda a: a[:, np.newaxis], (f1, f2)),
-                          axis=1)
+    return 10*(np.exp(((u[:, 0]-b1)**2 + (u[:, 1]-b2)**2)/1e2-1)-0.5)[:, np.newaxis]
 
     
 NLsnapshots = [func(snapshots[:, i, :]) for i in range(nt)]
@@ -93,32 +89,34 @@ NLsnapshots = np.concatenate(map(lambda a: a[:, np.newaxis, :], NLsnapshots),
                              axis=1)
 
 plots.plot2d(NLsnapshots[:, 0:nt:int(nt/9.)+1, :], 
-             grid_shape, options={'ncols':3}, title='NL Snapshots')
+             grid_shape, options={'ncols':3}, title='NL Snapshots', render=0)
 
 
 # %% --------------------  CONSTRUCT POD BASIS  -------------------- #
 
 # mean, fluc = pod.meanfluc(snapshots)
 # basis = pod.compute_basis(fluc)
-basis = pod.compute_basis(snapshots, threshold=1e-9)
-plots.plot2d(basis[:, :9, :], grid_shape, options={'ncols':3}, title='Basis')
+
+threshold = 1e-9
+basis = pod.compute_basis(snapshots, threshold=threshold)
+plots.plot2d(basis[:, :9, :], grid_shape, options={'ncols':3}, title='Basis for U', render=0)
 
 nx, ne, nc = basis.shape
 
 # NLmean, NLfluc = pod.meanfluc(NLsnapshots)
 # NLbasis = pod.compute_basis(NLfluc, threshold=0, nmax=ne)
 
-NLbasis = pod.compute_basis(NLsnapshots, threshold=0, nmax=ne)
+NLbasis = pod.compute_basis(NLsnapshots, threshold=threshold)
 plots.plot2d(NLbasis[:, :9, :], grid_shape, 
-             options={'ncols':3}, title='NL Basis')
+             options={'ncols':3}, title='Basis for F', render=0)
 
 
 # %% --------------------  CONSTRUCT DEIM ---------------- #
 
-p, P, c = deim.indices(NLbasis)
+p, P = deim.indices(NLbasis)
 deim_func = deim.interpolated_func(func, P, basis, NLbasis)
 
-if True:
+if False:
     for im, ix in enumerate(p):
     #    plt.axis((lims[0]+(-lims[1][1], lims[1][0])))
         xi = mesh[ix, :].tolist()
@@ -160,7 +158,7 @@ reconstructed_NLsnapshots = np.concatenate(map(lambda a: a[:, np.newaxis, :],
                                                reconstructed_NLsnapshots),
                                            axis=1)
 
-render = 'magnitude'
+render = 0
 plots.plot2d(snapshots[:, 0:nt:int(nt/9.)+1, :], grid_shape, options={'ncols':3}, render=render, 
              title='Snapshots', savename='Snapshots')
 plots.plot2d(reconstructed_snapshots[:, 0:nt:int(nt/9.)+1, :], grid_shape, 
@@ -174,6 +172,11 @@ plots.plot2d(NLsnapshots[:, 0:nt:int(nt/9.)+1, :],
 plots.plot2d(reconstructed_NLsnapshots[:, 0:nt:int(nt/9.)+1, :], grid_shape, 
              options={'ncols':3}, render=render, title='Reconstructed NL Snapshots',
              savename='Reconstructed_NL_Snapshots')
+
+plots.plot2d(NLsnapshots[:, 0:nt:int(nt/9.)+1, :]-reconstructed_NLsnapshots[:, 0:nt:int(nt/9.)+1, :],
+             grid_shape, options={'ncols':3}, render=render, 
+            title='Reconstructopn error NL Snapshots',
+             savename='error_NL_Snapshots')
 
 
 # %%
