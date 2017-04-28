@@ -55,54 +55,9 @@ Returns the i-th column of the identity matrix of dimension N.
     return v
 
 
-def objective_function(P, B, u):
-    nx, ne, nc = B.shape
-    c = Array(symbols('c:{}'.format(ne)))
-
-    PB = Array(np.einsum('xe,xfc->efc', P, B))
-    assert PB.shape == (ne, ne, nc)
-    Pu = Array(np.einsum('xe,xc->ec', P, u))
-    assert Pu.shape == (ne, nc)
-    # returns einsum path 'efcf'[0], 'efcf'[1] -> 'ec'
-    PB_dot_c = tensorcontraction(tensorproduct(PB, c),
-                                 (1, 3))
-    assert PB_dot_c.shape == (ne, nc)
-    error = PB_dot_c - Pu
-    assert error.shape == (ne, nc)
-    temp = tensorcontraction(tensorproduct(error, error), (1, 3))
-    res = Array([temp[i, i] for i in range(ne)])
-    assert res.shape == (ne, )
-    obj = tensorcontraction(tensorproduct(res, res), (0, 1))
-
-    grad = jacobian(Array((obj, )), c)[0, :]
-    hess = jacobian(grad, c)
-
-    def lambd(expr):
-        l = lambdify(c, expr, modules='numpy')
-
-        def func(c):
-            return np.array(l(*c))
-        return func
-
-    return map(lambd, (obj, grad, hess))
-
-
-def jacobian(F, X):
-    nx = X.shape[0]
-    nf = F.shape[0]
-    jac = Matrix(np.zeros((nf, nx)))
-    for i in range(nf):
-        for j in range(nx):
-            jac[i, j] = F[i].diff(X[j])
-    assert jac.shape == (nf, nx)
-    shape = map(int, jac.shape)
-    return Array(jac, shape)
-
-    
 def extend_projector_dimension(P, nc):
     return np.concatenate(map(lambda a: a[:, :, np.newaxis], (P,)*nc),
                           axis = 2)
-    
 
     
 def compute_c(P, B, u):
@@ -149,6 +104,7 @@ p : list of :math:`\mathtt{ne}` floats
 P : numpy array with shape (:math:`\mathtt{nx}`, :math:`\mathtt{ne}`)
     DEIM projector :math:`\mathbf P[:, i] = \mathbf{I_d}[:,p_i]\
 \in\mathbb R^{\mathtt{nx}}`.
+
 
 Reference
 ----------
@@ -208,7 +164,7 @@ via discrete empirical interpolation. SIAM Journal on Scientific Computing, \
     # --- END FOR --- #
 
     # return indices and projector
-    return p, P, all_c
+    return p, P
 
 # ----------------------------  DEIM FUNCTION  ------------------------- #
 
@@ -229,7 +185,7 @@ Parameters
 ----------
 
 func: function
-    Function to interpolate :math:`\mathbf f: \mathbb R^N\rightarrow \
+    Function to interpolate :math:`\\mathbf f: \\mathbb R^N\\rightarrow \
 \mathbb R^N`. 
 
 P: array_like
@@ -250,26 +206,27 @@ deimfunc: function
     """
     
     
-    nx, ne, nc = Phi.shape    
+    nx, ne_Phi, nc_Phi = Phi.shape    
 
-    assert P.shape == (nx, ne)
-    assert func(np.array([(1., )*nc, ])).shape == (1, nc)
+    assert P.shape[0] == nx
+    
+    nx, ne_Psi, nc_Psi = Psi.shape
+    
+    assert func(np.array([(1., )*nc_Phi, ])).shape == (1, nc_Psi)
     
     if mean_phi is None:
-        mean_phi = np.zeros((nx, nc))
+        mean_phi = np.zeros((nx, nc_Phi))
         
     if mean_psi is None:
-        mean_psi = np.zeros((nx, nc))
+        mean_psi = np.zeros((nx, nc_Psi))
         
     projector = np.einsum('xi,xjc->ijc', P, Phi)
     projected_mean = np.einsum('xi,xc->ic', P, mean_phi)
-    assert projector.shape == (ne, ne ,nc)
     
     M = reconstruction_matrix(P, Psi)
-    assert M.shape == (nx, ne, nc)
     
     def deim_func(c):
-        assert c.shape == (ne, )
+        assert c.shape == (ne_Phi, )
         return np.einsum('xec,ec->xc',
                          M, func(projected_mean+np.einsum('ejc,j->ec', projector, c)))
     deim_func.func_doc = """
@@ -286,6 +243,6 @@ Return
 
 res: array_like with shape ({1}, {2})
     Evaluation of func on specially selected arguments.
-""".format(ne, nx, nc)
+""".format(ne_Phi, nx, nc_Psi)
     return deim_func
     

@@ -74,13 +74,19 @@ plots.plot2d(snapshots[:, 0:nt:int(nt/9.)+1, :],
              grid_shape, options={'ncols':3}, title='Snapshots', render = 1)
 
 # %% --------------------  CONSTRUCT NONLINEAR SNAPSHOTS -------------------- #
-def func(snapshot):
-    eps = 1e0
-    component1 = np.exp(-np.abs(snapshot[:, 0]))*snapshot[:, 1]
-    component2 = np.exp(-np.tanh(np.pi*snapshot[:, 1]/eps))*snapshot[:, 0]
-    return np.concatenate(map(lambda a: a[:, np.newaxis], 
-                              (component1, component2)),
+def func(u):
+    """
+    Nonlinear function defined over a 2D space:
+.. math:: 
+    f:\mathbb R^2\\ni u \mapsto f(u) \in \mathbb R ^2.
+    """
+    a1, a2 = 1, 2
+    b1, b2 = 3, 4
+    f1 = ((u[:, 0]-a1)**2 + (u[:, 1]-a2)**2)**-0.5-1
+    f2 = np.exp(((u[:, 0]-b1)**2 + (u[:, 1]-b2)**2)/1e2-1)-0.5
+    return np.concatenate(map(lambda a: a[:, np.newaxis], (f1, f2)),
                           axis=1)
+
     
 NLsnapshots = [func(snapshots[:, i, :]) for i in range(nt)]
 NLsnapshots = np.concatenate(map(lambda a: a[:, np.newaxis, :], NLsnapshots),
