@@ -86,6 +86,7 @@ options : dictionary (optional)
             v = norm(d)
         else:
             assert isinstance(render, int)
+            assert 0 <= render < nc
             v = d[:, render]
         minmax = min([minmax[0], min(v)]), max([minmax[1], max(v)])
         all_v.append(v)

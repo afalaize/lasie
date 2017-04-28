@@ -59,8 +59,8 @@ def snapshot(t):
 
     sin = np.sin(fx*np.pi*mesh[:, 0])*np.sin(fx*np.pi*mesh[:, 1])
     rosen = (a-mesh[:, 0])**2 + b*(mesh[:, 1]-mesh[:, 0]**(2+coeff_t))**2
-    component1 = np.exp(-np.abs(rosen))*np.cos(np.pi*mesh[:, 0]**2)
-    component2 = (rosen*sin/10)-1.5
+    component1 = rosen*np.cos(np.pi*mesh[:, 0]**2)/100
+    component2 = coeff_t*(rosen*sin/10)-1.5
     
     return np.concatenate(map(lambda a: a[:, np.newaxis], 
                               (component1, component2)),
@@ -71,13 +71,13 @@ snapshots = np.concatenate(map(lambda a: a[:, np.newaxis, :], snapshots),
                           axis=1)
     
 plots.plot2d(snapshots[:, 0:nt:int(nt/9.)+1, :], 
-             grid_shape, options={'ncols':3}, title='Snapshots')
+             grid_shape, options={'ncols':3}, title='Snapshots', render = 1)
 
 # %% --------------------  CONSTRUCT NONLINEAR SNAPSHOTS -------------------- #
 def func(snapshot):
     eps = 1e0
-    component1 = np.exp(-np.abs(np.tanh(np.pi*(1+snapshot[:, 0])/eps)*snapshot[:, 1]))
-    component2 = np.exp(-np.abs(np.tanh(np.pi*snapshot[:, 1]/eps)*snapshot[:, 0]))
+    component1 = np.exp(-np.abs(snapshot[:, 0]))*snapshot[:, 1]
+    component2 = np.exp(-np.tanh(np.pi*snapshot[:, 1]/eps))*snapshot[:, 0]
     return np.concatenate(map(lambda a: a[:, np.newaxis], 
                               (component1, component2)),
                           axis=1)
@@ -94,7 +94,7 @@ plots.plot2d(NLsnapshots[:, 0:nt:int(nt/9.)+1, :],
 
 # mean, fluc = pod.meanfluc(snapshots)
 # basis = pod.compute_basis(fluc)
-basis = pod.compute_basis(snapshots)
+basis = pod.compute_basis(snapshots, threshold=1e-9)
 plots.plot2d(basis[:, :9, :], grid_shape, options={'ncols':3}, title='Basis')
 
 nx, ne, nc = basis.shape
@@ -103,7 +103,8 @@ nx, ne, nc = basis.shape
 # NLbasis = pod.compute_basis(NLfluc, threshold=0, nmax=ne)
 
 NLbasis = pod.compute_basis(NLsnapshots, threshold=0, nmax=ne)
-plots.plot2d(NLbasis[:, :9, :], grid_shape, options={'ncols':3}, title='NL Basis')
+plots.plot2d(NLbasis[:, :9, :], grid_shape, 
+             options={'ncols':3}, title='NL Basis')
 
 
 # %% --------------------  CONSTRUCT DEIM ---------------- #
@@ -157,10 +158,24 @@ render = 'magnitude'
 plots.plot2d(snapshots[:, 0:nt:int(nt/9.)+1, :], grid_shape, options={'ncols':3}, render=render, 
              title='Snapshots', savename='Snapshots')
 plots.plot2d(reconstructed_snapshots[:, 0:nt:int(nt/9.)+1, :], grid_shape, 
-             options={'ncols':3}, render=render, title='Reconstructed Snapshots', savename='Reconstructed_Snapshots')
+             options={'ncols':3}, render=render, 
+             title='Reconstructed Snapshots', 
+             savename='Reconstructed_Snapshots')
 
-plots.plot2d(NLsnapshots[:, 0:nt:int(nt/9.)+1, :], grid_shape, options={'ncols':3}, render=render,
+plots.plot2d(NLsnapshots[:, 0:nt:int(nt/9.)+1, :], 
+             grid_shape, options={'ncols':3}, render=render,
              title='NL Snapshots', savename='Original_NL_Snapshots')
 plots.plot2d(reconstructed_NLsnapshots[:, 0:nt:int(nt/9.)+1, :], grid_shape, 
              options={'ncols':3}, render=render, title='Reconstructed NL Snapshots',
              savename='Reconstructed_NL_Snapshots')
+
+
+# %%
+
+render = 0 # 'magnitude'
+for i, tup in enumerate(zip(np.swapaxes(NLsnapshots, 0, 1),
+                            np.swapaxes(reconstructed_NLsnapshots, 0, 1))[0:nt:20]):
+    a = np.concatenate(map(lambda e: e[:, np.newaxis, :], tup), axis=1)
+    plots.plot2d(a, grid_shape, options={'ncols': 2}, 
+                 render=render, savename='snapshot {}'.format(i))
+    
