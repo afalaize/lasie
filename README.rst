@@ -6,5 +6,5 @@ Installation
 
 Prerequisites
 --------------
-numpy
-vtk (can not be installed through pip on MacOSX, install with conda)
+* numpy
+* vtk (can not be installed through pip on MacOSX, install with conda)
