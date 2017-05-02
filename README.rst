@@ -7,4 +7,7 @@ Installation
 Prerequisites
 --------------
 * numpy
-* vtk (can not be installed through pip on MacOSX, install with conda)
+* scipy
+* matplotlib
+* tables
+* vtk (can not be installed through pip on MacOSX, install with conda instead)
