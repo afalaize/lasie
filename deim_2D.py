@@ -94,17 +94,10 @@ plots.plot2d(NLsnapshots[:, 0:nt:int(nt/9.)+1, :],
 
 # %% --------------------  CONSTRUCT POD BASIS  -------------------- #
 
-# mean, fluc = pod.meanfluc(snapshots)
-# basis = pod.compute_basis(fluc)
+threshold = 1e-6
 
-threshold = 1e-9
 basis = pod.compute_basis(snapshots, threshold=threshold)
 plots.plot2d(basis[:, :9, :], grid_shape, options={'ncols':3}, title='Basis for U', render=0)
-
-nx, ne, nc = basis.shape
-
-# NLmean, NLfluc = pod.meanfluc(NLsnapshots)
-# NLbasis = pod.compute_basis(NLfluc, threshold=0, nmax=ne)
 
 NLbasis = pod.compute_basis(NLsnapshots, threshold=threshold)
 plots.plot2d(NLbasis[:, :9, :], grid_shape, 
