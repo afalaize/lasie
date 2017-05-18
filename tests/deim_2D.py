@@ -8,14 +8,14 @@ Test sur le champ total (pas le champ fluctuant)
 
 """
 
-from lasie import deim
-from lasie import grids
-from lasie import plots
-from lasie import pod
-from lasie import misc
+from lasie_rom import deim
+from lasie_rom import grids
+from lasie_rom import plots
+from lasie_rom import pod
+from lasie_rom import misc
 import numpy as np
 import matplotlib.pyplot as plt
-from lasie.config import ORDER
+from lasie_rom.config import ORDER
 
 
 plt.close('all')

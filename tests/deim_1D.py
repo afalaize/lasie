@@ -7,9 +7,9 @@ Created on Fri Apr 28 11:33:49 2017
 
 import numpy as np
 import matplotlib.pyplot as plt
-from lasie import misc
-from lasie import pod
-from lasie import deim
+from lasie_rom import misc
+from lasie_rom import pod
+from lasie_rom import deim
 
 
 plt.close('all')

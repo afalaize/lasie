@@ -8,14 +8,14 @@ Created on Wed May 10 11:58:08 2017
 
 from __future__ import absolute_import, division, print_function
 
-from lasie.io.vtu2hdf import pvd2Hdf
-from lasie.io.hdf.write import dumpArrays2Hdf
-from lasie.io.hdf.read import HDFReader
-from lasie.classes import TimeSerie
-from lasie.interpolation import interpTimeSerieToHdf
-from lasie import grids 
-from lasie import pod
-from lasie import plots
+from lasie_rom.io.vtu2hdf import pvd2Hdf
+from lasie_rom.io.hdf.write import dumpArrays2Hdf
+from lasie_rom.io.hdf.read import HDFReader
+from lasie_rom.classes import TimeSerie
+from lasie_rom.interpolation import interpTimeSerieToHdf
+from lasie_rom import grids 
+from lasie_rom import pod
+from lasie_rom import plots
 import os
 import numpy
 
@@ -102,7 +102,7 @@ if False:
 # =========================================================================== #
 
 # Compute POD basis
-if False:
+if True:
     ts = TimeSerie(INTERP_HDF_FOLDER)
     ts.openAllFiles()
     mean, fluc = pod.meanfluc(ts.generator('vitesse'))
@@ -116,7 +116,7 @@ if False:
 if True:
     grid = HDFReader(MESH_HDF_PATH, openFile=True)
     basis = HDFReader(BASIS_HDF_PATH, openFile=True)
-    plots.plot2d(basis.get_single_data()[:, :9, :], 
+    plots.plot2d(basis.get_single_data()[:, :12, :], 
                  grid.shape[:, 0], 
                  render=0)
     grid.closeHdfFile()
