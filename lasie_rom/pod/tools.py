@@ -6,45 +6,85 @@ Created on Mon Jan 23 11:48:23 2017
 """
 
 from __future__ import division, absolute_import, print_function
+from ..misc.tools import concatenate_in_given_axis
 
 import numpy as np
 import copy
-from ..misc import concatenate_over_2d_axis
 
-def compute_basis(ts, threshold=1e-6, nmax=None):
+
+def compute_basis(U, threshold=1e-6, nmax=None):
     """
-    build the POD basis from the snapshots array :code:`ts`.
+    build the POD basis from the snapshots array :code:`U`.
+    
+    Parameters
+    -----------
+    
+    U : numpy ndarray
+        Shape is (nx, nc, nt) with nx the number of spatial nodes, nc the 
+        number of data components and nt the number of data elements (times).
+        
+    Return
+    ------
+    
+    B : numpy nd array
+        POD basis with shape (nx, nc, nB) where nB <= nmax and chosen so that 
+        the relative error on the truncated basis is <= threshold.
     """
 
     if nmax is None:
         nmax = float('Inf')
-    ts_a = concatenate_over_2d_axis(ts())
-    eigenvals, eigenvecs = eigen_decomposition(ts_a)
+    eigenvals, eigenvecs = eigen_decomposition(U)
     eigenenergy = eigen_energy(eigenvals)
     index = truncation_index(eigenenergy, threshold=threshold)
     npod = min([nmax, index])
     
     # Define POD basis
-    basis = np.einsum('xtc,ti->xic', ts_a, eigenvecs[:, :npod])
+    basis = np.einsum('xct,ti->xci', U, eigenvecs[:, :npod])
     normalize_basis(basis)
     
     return basis
 
     
 def eigen_energy(eigen_vals):
+    """
+    Return the list of eneries associated with pod eigen values, with 
+    energy[i] = sum(eigen_vals[:i+1])/sum(eigen_vals)
+    """
     modes_energy = list()
     for i, val in enumerate(eigen_vals):
         mode_energy = sum(eigen_vals[:i+1])/sum(eigen_vals)
         modes_energy.append(mode_energy)
-    return modes_energy
+    return np.array(modes_energy)
 
 
 def truncation_index(eigen_energy, threshold=1e-6):
+    """
+    Return the index i in eigen_energy so that 1-eigen_energy[i] < threshold.
+    """
     return [me >= 1-threshold for me in eigen_energy].index(True)+1
 
 
 def check_basis_is_orthonormal(basis):
-    M = np.einsum('mic,mjc->ij', basis, basis)
+    """
+    Print informations about the orthonormality of array 'basis' (maximum
+    valmue out of diagonal and mean of diagonal values).
+    
+    Parameters
+    ----------
+    
+    B : numpy array
+        Basis array with shape (nx, nc , nm) where nx is the number of sptaial 
+        points, nc is the number components for each basis element an nm is the
+        number of basis elements.
+        
+    Retrun
+    ------
+    
+    Nothing, just print some informations.
+    
+    
+    """
+    M = np.einsum('mci,mcj->ij', basis, basis)
     mask_diag = np.ones(M.shape)-np.eye(M.shape[0])
     maxv = (M*mask_diag).max()
     print("val max out of diag from np.dot(basis.T, basis) is {}".format(maxv))
@@ -53,18 +93,18 @@ def check_basis_is_orthonormal(basis):
 
 
 def normalize_basis(basis):
-    M = np.einsum('mic,mjc->ij', basis, basis)
+    M = np.einsum('mci,mcj->ij', basis, basis)
     for i, row in enumerate(M):
-        basis[:, i] = basis[:, i]/np.sqrt(row[i])
+        basis[:, :, i] = basis[:, :, i]/np.sqrt(row[i])
 
         
 def eigen_decomposition(ts):
     """
-    Compute the eigen decompositon of matrix C[i,j] = ts[x,i,c]*ts[x,j,c]
+    Compute the eigen decompositon of matrix C[i,j] = ts[x,c,i]*ts[x,c,j]
     """
 
     # Form correlation matrix
-    C = np.einsum('xic,xjc->ij', ts, ts)
+    C = np.einsum('xci,xcj->ij', ts, ts)
     eigen_vals, eigen_vecs = np.linalg.eig(C)
     
     # Remove the imaginary part (which should be numerically close to zero)
@@ -80,50 +120,45 @@ def eigen_decomposition(ts):
     return eigen_vals, eigen_vecs
                               
 
-def meanfluc(ts):
+def meanfluc(A):
     """
-========
-meanfluc
-========
-
-Compute the mean of the time serie and remove that mean from each snapshot.
-
-Parameters
-----------
-
-ts : aray_like with shape (nx, nt, nc)
-    time serie, where nx is the number of spatial discretization points, nt is
-    the number of snapshots and nc is the number of spatial components.
+    meanfluc
+    ********
     
-Returns
--------
-
-mean : aray_like with shape (nx, nc)
-    Mean of the time serie over the 2nd axis: :math:`mean[i,j]=\frac{1}{nt}\
-\sum_{t=1}^{nt}ts[i, t, j]`.
-
-fluc : aray_like with shape (nx, nt, nc)
-    Time serie with the mean removed from each snapshot: :code:`fluc[:, i, :]\
-=ts[:, i, :]-mean[:, :]`.
+    Compute the mean of the time serie and remove that mean from each snapshot
+    in array A
+    
+    Parameters
+    ----------
+    
+    A : numpy array with shape (nx, nc, nt)
+        Time serie array, where nx is the number of spatial discretization 
+        points, nc is the number of spatial componentsnt is the number of 
+        snapshots.
+        
+    Returns
+    -------
+    
+    mean : numpy array with shape (nx, nc)
+        Mean of the time serie over the last axis: 
+        :math:`mean[i,j]=\\frac{1}{nt}\\sum_{t=1}^{nt}A[i, j, t]`.
+    
+    fluc : numpy array with shape (nx, nc, nt)
+        Time serie array where the mean has been removed from each snapshot: 
+        :math:`fluc[:, :, i] = A[:, :, i] - mean[:, :]`.
     """
-    mean = 0
-    n = 1
-    for s in ts():
-        mean += s
-        n += 1
-    mean /= n
-    def fluct():
-        for s in ts():
-            yield s - mean
-    return mean, fluct
-
+    
+    nx, nc, nt = A.shape
+    mean = np.mean(A, axis=2)    
+    fluc = concatenate_in_given_axis([A[:, :, t] - mean for t in range(nt)], 2)
+    return mean, fluc
 
     
 def compute_kinetic_energy(data):
     """
     Return the kinetic energy associated with the velocity data with shape (nx, nt, nc).
     """
-    return np.einsum('itc,itc->t', data, data)
+    return np.einsum('ict,ict->t', data, data)
     
 
 def sortIndices(liste):
@@ -141,23 +176,4 @@ def sortIndices(liste):
         indices.append(liste.index(val_max))
         copy_liste.pop(copy_liste.index(val_max))
     return indices
-    
-    
-def tensor2vector(data):
-    assert len(data.shape) == 3, 'Expected a 3-D array, got data with shape {}'.format(data.shape)
-    d1, d2, d3 = data.shape
-    output = np.zeros((d1*d3, d2))
-    for i in range(d3):
-        output[i*d1:(i+1)*d1, :] = data[:, :, i]
-    return output
-        
-    
-def vector2tensor(data, dim):
-    assert len(data.shape) == 2, 'Expected a 2-D array, got data with shape {}'.format(data.shape)
-    d1, d2 = data.shape
-    d1_reduced = d1//dim
-    output = np.zeros((d1_reduced, d2, dim))
-    for i in range(dim):
-        output[:, :, i] = data[i*d1_reduced:(i+1)*d1_reduced:, :]
-    return output
     

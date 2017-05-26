@@ -11,10 +11,10 @@ from ..config import ORDER
 
 def vstack(M):
     """
-    Stack elements of array M with shape (nx, m, nc) into array MM with shape
-    (nx*m, nc) with MM = [M[:, 0, :].T, ..., M[:, m, :].T].T
+    Stack elements of array M with shape (nx, nc, m) into array MM with shape
+    (nx*nc, m) with MM = [M[:, :, 0].T, ..., M[:, :, ].T].T
     """
-    nx, m, nc = M.shape
+    nx, nc, m = M.shape
     return M.reshape((nx*nc, m), order=ORDER)
     
 
@@ -31,24 +31,43 @@ def unvstack(M, nc):
     return M.reshape(new_shape, order=ORDER)
     
 
-def concatenate_over_2d_axis(l):
+def concatenate_in_first_axis(l):
     """
     
-Parameter
-----------
-l : list of numpy arrays
-    Each element of the list must be a 2 dimensionnal array with shape \
-:code:`(n0, n1)`.
-
-Return
-------
-a : numpy array
-    Concatenation of the arrays in the list :code:`l`, with shape \
-:code:`(n0, len(l), n1)`.
+    Parameter
+    ----------
+    l : list of N numpy arrays
+        Each element of the list must be a D dimensionnal array, and dimensions
+        of every arrays must coincide.
+    
+    Return
+    ------
+    a : numpy array
+        Concatenation of the arrays in the list :code:`l`. Number of dimensions
+        is D+1, with shape along last axis equal to the lenght of list l.
+        
     """
-    def add_axe(a):
-        return a[:, np.newaxis, :]
-    return np.concatenate(map(add_axe, l), axis=1)
+    def expand(a):
+        return np.expand_dims(a, 0)
+    return np.concatenate(map(expand, l), axis=0)
+
+    
+def concatenate_in_given_axis(l, axis=0):
+    """    
+    Parameter
+    ----------
+    l : list of N numpy arrays
+        Each element of the list must be a D dimensionnal array, and dimensions
+        of every arrays must coincide.    
+    Return
+    ------
+    a : numpy array
+        Concatenation of the arrays in the list :code:`l`. Number of dimensions
+        is D+1, with shape along last axis equal to the lenght of list l.
+    """
+    def expand(a):
+        return np.expand_dims(a, axis)
+    return np.concatenate(map(expand, l), axis=axis)
 
     
 def norm(a):
@@ -64,4 +83,20 @@ Return
 n : numpy array with shape (Nx, Nc)
     Norm of the numpy array over the last dimension `n[i]=sqrt(sum_j a[i,j]^2)`
     """
+    if len(a.shape) == 1:
+        a = a[np.newaxis, :]
     return np.sqrt(np.einsum('ij,ij->i', a, a))
+
+
+def iterarray(a, axis=0):
+    naxis = len(a.shape)
+    s = [slice(None), ]*naxis
+    def slice_i(i):
+        slicer = s
+        slicer[axis] = i
+        return slicer
+    for i in range(a.shape[axis]):
+        yield a[slice_i(i)]
+        
+    
+    

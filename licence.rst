@@ -12,7 +12,7 @@ Contributors:
 corresponding contributor: 
 	antoine.falaize@univ-lr.fr
 
-This python software is a computer program whose purpose is to build and run reduced order models of fluid/structure intercations.
+This python software is a computer program whose purpose is to build and run reduced order models in the context of fluid/structure intercations.
 
 This software is governed by the CeCILL-B license under French law and abiding by the rules of distribution of free software. You can use, modify and/ or redistribute the software under the terms of the CeCILL-B license as circulated by CEA, CNRS and INRIA at the following URL "http://www.cecill.info".
 

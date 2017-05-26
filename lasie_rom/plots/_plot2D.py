@@ -22,7 +22,8 @@ PARAMS = {'left': 0.05,
           'top': 0.9,
           'wspace': None,
           'hspace': None}
-CBAR = 'global'
+
+CBAR = 'global'  # 'individual'
 
 OPTIONS = {'ncols': NCOLS,
            'cmap': CMAP,
@@ -41,29 +42,31 @@ Plot of 2D data array.
 Parameters
 ----------
 
-a: array_like with shape (nx, ne, nc)
-    array to plot where nx is the number of spatial discretization points, ne
-    is the number of elements to plot, and nc is the number of spatial 
-    components.
+a: array_like with shape (nx, nc, nm)
+    array to plot where nx is the number of spatial discretization points, nc 
+    is the number of spatial components, and nm is the number of elements to 
+    plot.
     
 shape: list of int
-    Original grid shape (i.e. as returned by lasis.grids.generate).
+    Original grid shape (i.e. as returned by lasie_rom.grids.generate).
     
 title: string (optional)
-
-render: 'magnitude' or int (optional)
-    Render the magnitude or a specific field component.
 
 savename: string (optional)
 
 options: dictionary (optional)
-    options = {'ncols': NCOLS,
-               'cmap': CMAP,
-               'size': SIZE,
-               'format': FORMAT,
-               'axes': AXES,
-               'params': PARAMS,
-               'cbar': CBAR,
+    options = {'ncols': None,
+               'size': None,
+               'format': 'png',
+               'axes': [0.88, 0.125, 0.01, 0.75],
+               'params': {'left': 0.05,
+                          'bottom': 0.05,
+                          'right': 0.85,
+                          'top': 0.9,
+                          'wspace': None,
+                          'hspace': None},
+               'cmap': 'RdBu_r',
+               'cbar': 'global',
                }
     """
     
@@ -73,7 +76,7 @@ options: dictionary (optional)
         options = {}
     opts.update(options)
 
-    nx, nm, nc = a.shape
+    nx, nc, nm = a.shape
     ncols = opts['ncols']
     if ncols is None:
         ncols = int(np.ceil(np.sqrt(nm)))
@@ -86,7 +89,7 @@ options: dictionary (optional)
     all_v = list()
     minmax = (float('Inf'), -float('Inf'))
     for m in range(nm):
-        d = a[:, m]
+        d = a[:, :, m]
         if render == 'magnitude':
             v = norm(d)
         else:

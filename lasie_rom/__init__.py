@@ -1,5 +1,11 @@
 #
 
+from . import pod, deim, io, parallelization
+
+
+__all__ = ['pod', 'deim', 'io', 'parallelization']
+
+
 __author__ = "Antoine Falaize"
 __version__ = "17.05"
 __licence__ = \

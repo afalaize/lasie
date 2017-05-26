@@ -8,11 +8,11 @@ Created on Wed May 10 12:38:45 2017
 
 import os
 import tables
-from ..io.hdf.write import writeArray2Hdf
-from ..parallelization.tools import parmap
+from ..io.hdf import write_array_in_hdf
+from ..parallelization import map as parmap
 
 
-def interpTimeSerieToHdf(ts, mesh, folder):
+def interp_timeserie_in_hdf(ts, mesh, folder):
     """
 ====================
 interpTimeSerieToHdf
@@ -79,9 +79,9 @@ serie, and :code:`lasie.readwrite.HDFReader` to read a single hdf5 file.
         
         for name in data.names:
             if name == 'mesh':
-                writeArray2Hdf(hdf_file, mesh, name)
+                write_array_in_hdf(hdf_file, mesh, name)
             else:
-                writeArray2Hdf(hdf_file, data.interpolators[name](mesh), name)
+                write_array_in_hdf(hdf_file, data.interpolators[name](mesh), name)
                 
         hdf_file.close()
         

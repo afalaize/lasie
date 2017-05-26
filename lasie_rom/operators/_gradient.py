@@ -50,8 +50,12 @@ See also
     """
     # original array shape
     array_shape = a.shape
+    
+    shape = list(map(int, shape))
+    
     # init gradient shape
     grad = np.zeros((array_shape[0], array_shape[1], shape[0]))
+
     # iterate over the components of a
     for i in range(array_shape[1]):
         # reshape to grid shape

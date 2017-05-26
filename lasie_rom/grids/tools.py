@@ -39,9 +39,12 @@ h : tuple of floats
     for i, xminmax in enumerate(minmax):
         ximin, ximax = xminmax
         hi = h[i] if isinstance(h, (tuple, list)) else h
-        nxi = int((ximax-ximin)/hi)
+        nxi = max([1, int((ximax-ximin)/hi)])
         xi_grid = np.linspace(ximin, ximax, nxi)
-        hi_grid = np.diff(xi_grid)[0]
+        if nxi > 1:
+            hi_grid = np.diff(xi_grid)[0]
+        else:
+            hi_grid = 0.
         x_grid.append(xi_grid)
         h_grid.append(hi_grid)
     grid = np.array(np.meshgrid(*x_grid, indexing='ij'))
@@ -54,7 +57,7 @@ def to_mesh(grid):
 
     Usage
     ------
-    mesh = grid2mesh(grid)
+    mesh = to_mesh(grid)
 
     with mesh.shape = (n_points, n_components)
     and mesh[i, :] the coordinates of point i.

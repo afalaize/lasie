@@ -8,13 +8,11 @@ Created on Tue Jan 24 17:07:22 2017
 
 from __future__ import absolute_import
 
-import numpy as np
-from xml.etree import cElementTree as ElementTree
-from decimal import Decimal
 import vtk
-from lasie_rom.grids import generate, to_mesh
 from vtk.util.numpy_support import numpy_to_vtk
 
+from xml.etree import cElementTree as ElementTree
+from decimal import Decimal
 
 def setPoints(vtkUnstructuredGrid, mesh):
     nx, nc = mesh.shape
@@ -110,7 +108,7 @@ def write_vtk(mesh, shape, data, path):
     vtkfile.SetFileName(path)
     vtkfile.Write()
 
-# TEST USING pyvtk => BUG in the conection sci.spatial.Delaunay and pyvtk.UnstructuredGrid
+# TEST USING pyvtk => BUG in the connection sci.spatial.Delaunay and pyvtk.UnstructuredGrid
 #def write_with_pyvtk(mesh, shape, data, path, title=None):
 #    """
 #    Parameters
@@ -217,13 +215,3 @@ def setData(tree, data, label='PodBasisElement', dtype=None):
             subel.set(key, attrib[key])
         subel.text = array2text(d, dtype=dtype)
     return tree
-
-
-if __name__ == '__main__':
-    grid, h = generate(((0., 1.), (0, 2.), (0., 3.)), 0.1)
-    mesh = to_mesh(grid)
-    data = np.zeros(mesh.shape)
-    for i, x in enumerate(mesh):
-        data[i, :] = map(lambda e: np.sin(np.pi*e), x)
-    data = data.reshape((np.prod(data.shape), ))
-    write_vtu(mesh, grid.shape, [data, ], 'testData', 'test.vtu')

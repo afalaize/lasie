@@ -1,5 +1,5 @@
 #
 
-from .timeserie import interpTimeSerieToHdf
+from .timeserie import interp_timeserie_in_hdf
 
-__all__ = ['interpTimeSerieToHdf']
+__all__ = ['interp_timeserie_in_hdf']

@@ -7,7 +7,7 @@ Created on Fri May 12 14:06:25 2017
 """
 
 import numpy as np
-from lasie.operators import scalarproduct
+from lasie_rom.operators import scalarproduct
 
 nx = 100
 

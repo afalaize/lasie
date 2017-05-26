@@ -7,27 +7,25 @@ Created on Mon Apr 24 17:49:25 2017
 """
 
 import numpy as np
-from ..misc.tools import vstack, unstack
+from ..misc.tools import norm
 
 TOL = 1e-16
 
 
-# ----------------------------  DEIM INDICES  ------------------------- #
+# -------------------------------  DEIM INDICES  ---------------------------- #
 
-def argmax(a):
+def get_major_element(array):
     """
     ======
     argmax
     ======
     
     Returns the index of the maximum value of the module of array :code:`a` 
-    with shape :code:`̀(nx, nc)`: 
-    
-    .. math:: i=\\underset{i\\in[0 \\cdots \\mathtt{nx}-1]}{\\mbox{argmax}}\\left(\\sqrt{\\sum_{j=1}^{\\mathtt{nc}} a_j^2(x_{i+1})}\\right).
+    with shape :code:`̀(nx,)`: 
     
     Parameters
     ----------
-    a : array_like with shape :code:`(nx, nc)`
+    a : array_like with shape :code:`(nx, )`
         Input array organized as :math:`\\big[\mathbf a\\big]_{i,j} = a_j(x_i)`
     
     Returns
@@ -41,34 +39,36 @@ def argmax(a):
     corresponding to the first occurrence is returned.
 
     """
-    return int(np.argmax(np.einsum('ij,ij->i', a, a)))
+    return int(np.argmax(np.abs(array)))
 
 
-def idcol(i, N):
+def get_major_component(array):
     """
-Returns the i-th column of the identity matrix of dimension N.
-
-Parameters
-----------
-
-i : int
-    Index of the identity matrix column.
-N : int
-    Size of identity matrix.
-
-Return
-------
-
-c : numpy.ndarray
-    Teh 'i'-th column of identity matrix of order N.
-    """
-    v = np.zeros(N)
-    v[i] = 1.
-    return v
-
-
+    Return the index of the component which exhibits the greatest (discrete) 
+    L2 norm.
     
-def compute_c(P, Psi, psi):
+    Parameter
+    ---------
+    
+    array: numpy array
+        Shape is (nx, nc) with nx the number of spatial grid points and nc the 
+        number of spatial component.
+        
+    Return
+    
+    i : positive int
+        Index i such that for all j: || array[:,j] || <= || array[:,i] ||.
+    """
+    
+    nx, nc = array.shape
+    norms = [norm(array[:, i]) for i in range(nc)]
+    return int(np.argmax(norms))
+
+
+# -------------------------------  DEIM INDICES  ---------------------------- #
+
+
+def temp_coeffs(P, B, b):
     """
     Returns the coefficients in the DEIM  procedure
     
@@ -85,28 +85,27 @@ def compute_c(P, Psi, psi):
     psi : numpy.ndarray
          Stacked reduced basis element.
     """
-
-    M = np.einsum('xi,xj->ij', P, Psi)
-    
-    Ppsi = np.einsum('xi,x->i', P, psi)
-    
+    M = np.einsum('xcm,xcn->mn', P, B)
+    Ppsi = np.einsum('xcm,xc->m', P, b)
     return np.einsum('ij,j->i', np.linalg.inv(M), Ppsi)
 
 
-def projector(basis):
+# -------------------------------  DEIM INDICES  ---------------------------- #
+
+def projector(B):
     """
 projector
 *********
 
 Indices for the DEIM approximation of the (POD) basis represented by the numpy
-array `basis`.
+array `B`.
 
 We use a slightly modified version of Algorithm 1 in [1]_.
 
 Parameter
 ---------
 
-basis : numpy array with shape :code:`(nx, ne, nc)`
+B : numpy array with shape :code:`(nx, ne, nc)`
     Basis array with :code:`basis[i,j,k]` the k-th component of the j-th basis\
  element at point :math:`x_i`. The mesh is :math:`x_i\in\
 \mathbb{R}^{\mathtt{nc}}, i \in[1\cdots\mathtt{nx}]` with :math:`\mathtt{nx}` \
@@ -130,78 +129,54 @@ via discrete empirical interpolation. SIAM Journal on Scientific Computing, \
 
     """
     
-    nx, ne, nc = basis.shape
+    nx, nc, ne = B.shape
+
+    rho = list()
+    mu = list()
     
-    # stack basis components
-    _basis = vstack(basis)
+    rho.append(get_major_component(B[:, :, 0]))
+    mu.append(get_major_element(B[:, rho[0], 0]))
     
-    p = list()
-
-    # first basis element
-    bi = _basis[:, 0]
-
-    # first DEIM index
-    pi = argmax(bi)
-    p.append(pi)
-
-    # partial basis (one element)
-    B = bi[:, np.newaxis]
 
     # partial projector (one element)
-    P = idcol(pi, nx*nc)[:, np.newaxis]
-
-    for i in range(1, ne):
-
+    p = np.zeros((nx, nc, 1))
+    p[mu[0], rho[0], 0] = 1.
+    P = p
+    
+    B_temp = B[:, :, :1]
+    for i, b in enumerate(B[: ,: ,1:].T, 1):
+        
         # i-th basis element
-        bi = basis[:, i]
-
+        b = b.T
+        
         # obtain coefficients
-        c = compute_c(P, B, bi)
+        c = temp_coeffs(P, B_temp, b)
 
         # projected partial basis reconstruction error
-        r = bi - np.einsum('ij,j->j', B, c)
+        r = b - np.einsum('xcm,m->xc', B_temp, c)
 
         # i-th DEIM index
-        pi = argmax(r)
-        p.append(pi)
+        rho_j = get_major_component(r)
+        mu_j = get_major_element(r[:, rho_j])
+        
+        rho.append(rho_j)
+        mu.append(mu_j)
+        
+        p = np.zeros((nx, nc, 1))
+        p[mu[-1], rho[-1], 0] = 1.
+         
+        P = np.concatenate((P, p), axis=2)
 
-        # partial basis (i elements)
-        B = np.hstack((B, bi))
-
-        # partial projector (i elements)
-        P = np.hstack((P, idcol(pi, nx*nc)))
-
+        B_temp = np.concatenate((B_temp, b[:, :, np.newaxis]), axis=2)
+        
     # --- END FOR --- #
 
     # return projector
-    return unstack(P, nc)
+    return P, rho, mu
 
 # ----------------------------  DEIM FUNCTION  ------------------------- #
 
-
-def reconstruction_matrix(P, Phi, Psi, u_average):
-    nx, nP = P.shape
-    n1, nphi, nu = Phi.shape
-    n2, npsi, nf = Psi.shape
-    
-    m1 = np.einsum('xm,xn->mn', vstack(P), vstack(Psi))
-    m2 = np.einsum('xm,xn->mn', vstack(Phi), vstack(Psi))
-    M = np.einsum('ij,jk->ik', m2, np.linalg.inv(m1))
-    
-    def Si(i):
-        return np.hstack([idcol(i + n*nx, nx*nu)[:, np.newaxis] 
-                          for n in range(nu)])
-    SS = np.array([Si(i) for i in range(nx)])
-    def N(c, i):
-        return np.einsum('xm,xyj,yk->jk', P[:, i, c], SS, vstack(Phi))
-    
-    def umoy(c ,i):
-        return np.einsum('xm,xyj,y->j', P[:, i, c], SS, vstack(u_average))
-    
-    return M, N, umoy
-
-
-def interpolated_func(func, P, Phi, Psi, mean_phi=None, mean_psi=None):
+def interpolated_func(func, Phi, Psi, mean_phi=None):
     """
 Return the DEIM interpolation of function func with DEIM projector P and POD 
 basis Phi and Psi
@@ -213,9 +188,6 @@ func: function
     Function to interpolate :math:`\\mathbf f: \\mathbb R^{n_u}\\rightarrow \
 \mathbb R^{n_f}`. 
 
-P: array_like
-    DEIM projector
-    
 Phi: array_like
     POD basis for the function variable    .
 
@@ -230,42 +202,37 @@ deimfunc: function
 \mathbb R^{n_\phi}`.
     """
 
-    nx, nphi, nu = Phi.shape    
-    nx, npsi, nf = Psi.shape
+    nx, nu, nphi = Phi.shape    
+    nx, nf, npsi = Psi.shape    
+       
+    P, rho, mu = projector(Psi)
     
-    M, N, umoy = reconstruction_matrix(P, Phi, Psi)
-    
-    def fc(a, c):
-        def prod(i):
-            return np.einsum('ij,j->i', N(c, i), a)
-        return np.array([func(*(umoy(c, i)+prod(i))) for i in range(nphi)])
+    M = np.einsum('mki,mkj->ij', P, Psi)
+    iM = np.linalg.inv(M)
 
-    
-    assert func(np.array([(1., )*nphi, ])).shape == (1, npsi)
-    
-    if mean_phi is None:
-        mean_phi = np.zeros((nx, nphi))
         
-    if mean_psi is None:
-        mean_psi = np.zeros((nx, npsi))
-    
+    if mean_phi is None:
+        mean_phi = np.zeros((nx, nu))
+        
     def deim_func(a):
-        assert c.shape == (nphi, )
-        return np.einsum('', M, np.add(*[fc(a, c)) for c in nf])
+        args = [np.einsum('km,m->k', Phi[mu[j], :, :], a) + mean_phi[mu[j], :] for j in range(npsi)]
+        F = np.array([func[rho[j]](*args[j]) for j in range(npsi)])
+        return np.einsum('ij,j->i', iM, F.flatten())
+    
     deim_func.func_doc = """
 DEIM interpolation of nonlinear function.
 
 Parameter
 ---------
 
-c: array_like with shape ({0}, )
-    Activation coefficients for the function argument basis.
+a: array_like with shape ({0}, )
+    Activation coefficients for the solution basis functions.
     
 Return 
 ------
 
-res: array_like with shape ({1}, {2})
+res: array_like with shape ({1}, )
     Evaluation of func on specially selected arguments.
-""".format(nphi, nx, npsi)
+""".format(nphi, npsi)
     return deim_func
     

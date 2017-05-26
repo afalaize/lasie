@@ -10,6 +10,10 @@ import numpy as np
 import vtk
 from vtk.util.numpy_support import vtk_to_numpy
 
+from xml.etree import cElementTree as ElementTree
+from collections import OrderedDict
+import os
+
 
 def read_vtk(path):
     """
@@ -44,7 +48,15 @@ def read_vtk(path):
     output = reader.GetOutput()
 
     # retrieve mesh
-    mesh = vtk_to_numpy(output.GetPoints().GetData())
+    mesh = vtk_to_numpy(output.GetPoints().GetData())  
+    ndims_mesh = mesh.shape[1]
+    nonempty_axes = range(ndims_mesh)
+    for i in range(ndims_mesh):
+        if len(np.nonzero(mesh[:, i])[0]) == 0:
+            nonempty_axes.pop(i)
+    
+    # Remove empty dimensions
+    mesh = mesh[:, np.array(nonempty_axes)]
     
     # store mesh in dic
     data = {'mesh': mesh}
@@ -62,7 +74,53 @@ def read_vtk(path):
         # add an axe if array is 1D => 2D array
         if len(array.shape) == 1:
             array = array[:, np.newaxis]
+        # Remove empty dimensions
+        elif array.shape[1] == ndims_mesh:
+            array = array[:, np.array(nonempty_axes)]
+            
         # store array in dic
         data.update({key: array})
     return data
+
     
+def pvd2files(pvd_path):
+    """
+    Extract a list of .vtu file paths from the .pvd file pointed by pvd_path.
+    
+    Warning
+    -------
+    Duplicate .vtu file paths are deleted, so the list can possibly not contain
+    the whole list of paths.
+    """
+    pvdtree = ElementTree.parse(open(pvd_path))
+    folder = pvd_path[:pvd_path.rfind(os.sep)]
+    listOfFiles = list()
+    for elem in pvdtree.getiterator('DataSet'):
+        path = elem.attrib['file']
+        istartname = path.rfind(os.sep)
+        if istartname == -1:
+            istartname = 0
+        else:
+            istartname += 1
+        listOfFiles.append(os.path.join(folder, path[istartname:]))
+    # WARNING: we remove duplicate filenames
+    return list(OrderedDict.fromkeys(listOfFiles))
+
+
+def pvd2times(pvd_path):
+    """
+    Extract a list of times from the .pvd file pointed by pvd_path.
+
+    Warning
+    --------
+    Duplicate time values are deleted, so the list can possibly not contain
+    the whole list of time values.
+    """
+    pvdtree = ElementTree.parse(open(pvd_path))
+    listOfTimes = list()
+    for elem in pvdtree.getiterator('DataSet'):
+        listOfTimes.append(float(elem.attrib['timestep']))
+    # WARNING: we remove duplicate times
+    return list(OrderedDict.fromkeys(listOfTimes))
+
+

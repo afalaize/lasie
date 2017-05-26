@@ -1,4 +1,6 @@
 #
-from .tools import norm, concatenate_over_2d_axis
+from .tools import (norm, concatenate_in_first_axis, concatenate_in_given_axis,
+                    iterarray)
 
-__all__ = ['norm', 'concatenate_over_2d_axis']
+__all__ = ['norm', 'concatenate_in_first_axis', 'concatenate_in_given_axis', 
+           'iterarray']

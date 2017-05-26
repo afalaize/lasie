@@ -6,8 +6,8 @@ Created on Wed May 10 12:26:42 2017
 @author: root
 """
 
-from ..io.hdf.read import readlistOfHdfFiles, HDFReader
-from ..misc.tools import concatenate_over_2d_axis
+from ..io.hdf import HDFReader, readlistOfHdfFiles
+from ..misc.tools import concatenate_in_given_axis
 
 
 class TimeSerie(object):
@@ -42,10 +42,10 @@ Time serie reader.
         """
         ts.times[0] <= t <= ts.times[-1]
         """
-        assert t >= self.times[0], 'time smaller than min in time-serie: \
-{} < {}'.format(t, self.times[0])
-        assert t <= self.times[-1], 'time greater than max in time-serie: \
-{} > {}'.format(t, self.times[-1])
+        if not t >= self.times[0]:
+            raise Exception('Time smaller than minimum in time-serie: {} < {}'.format(t, self.times[0]))
+        if not t <= self.times[-1]:
+            raise Exception('Time greater than max in time-serie: {} > {}'.format(t, self.times[-1]))
         if t == self.times[-1]:
             return getattr(self.data[-1], name)[:]
         else:
@@ -77,9 +77,11 @@ func: generator function
         
     def concatenate(self, name):
         """
-Returns a single array with shape (nx, nt, nd) with nx the number of points in
-the mesh, nt len(TimeSerie.data) and nd the number of components of the data
-atttribute that corresponds to name.
+    Returns a single array with shape (nx, nc, ..., nt) with nx the number of 
+    points in the mesh, nc the number of components and nt = len(TimeSerie.data) 
+    for the data atttribute that corresponds to name (the '...' means that 
+    each array in the time serie can be N-dimensional with N>2).
         """        
+        shape = getattr(self.data[0], name)[:].shape
         generator = self.generator(name)
-        return concatenate_over_2d_axis(generator())
+        return concatenate_in_given_axis(generator(), axis=len(shape))

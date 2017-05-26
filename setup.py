@@ -15,7 +15,7 @@ from codecs import open
 
 from os import path
 
-from lasie import __author__, __version__, __licence__, __author_email__
+from lasie_rom import __author__, __version__, __licence__, __author_email__
 
 
 ###############################################################################
@@ -27,9 +27,9 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 ###############################################################################
 
 
-setup(name='lasie',
+setup(name='lasie_rom',
       version=__version__,
-      description="Development Status :: 3 - Alpha",
+      description="Model order reduction in computational fluid dynamics.",
       long_description=long_description,
       classifiers=[
         'Natural Language :: English',
@@ -48,20 +48,19 @@ setup(name='lasie',
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Physics'
       ],
-      keywords='model order reduction',
-      url='https://github.com/afalaize/lasie',
+      keywords='CFD ROM POD DEIM',
+      url='https://github.com/afalaize/lasie_rom',
       author=__author__,
       author_email=__author_email__,
       license=__licence__,
-      packages=find_packages(exclude=[]),
+      packages=find_packages(),
       zip_safe=False,
-      include_package_data=True,
+      include_package_data=False,
       install_requires=[
           'numpy',
-          'scipy',
-          'progressbar2',
           'matplotlib',
-      ],
+          'pytables',
+          'progressbar2'],
       test_suite='nose.collector',
       tests_require=['nose'],
       )
