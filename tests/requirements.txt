@@ -1,0 +1,5 @@
+numpy
+matplotlib
+pytables
+progressbar2
+vtk
