@@ -7,12 +7,10 @@ Created on Thu Feb 02 11:53:24 2017
 
 from __future__ import division
 import numpy as np
-from ..io.hdf import HDFReader, data2hdf
-from ..classes import TimeSerie
+from ..io.hdf import HDFReader
 from ..misc import concatenate_in_given_axis
 from scipy.optimize import root
 import progressbar
-
 
 
 class ReducedOrderModel(object):
