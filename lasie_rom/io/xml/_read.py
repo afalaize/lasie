@@ -10,10 +10,34 @@ Created on Mon Feb 27 14:36:11 2017
 """
 
 #                             !!! Warning !!!
-# This module was firstly intended for reading of vtk files, that are basically 
-# xml files. Now, propper vtk reader is available, so we just let this script 
-# as a bunch of routines for reading xml files, but a lot of links may be 
+# This module was firstly intended for reading of vtk files, that are basically
+# xml files. Now, propper vtk reader is available, so we just let this script
+# as a bunch of routines for reading xml files, but a lot of links may be
 # broken, so use with care.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -40,18 +64,16 @@ Created on Mon Feb 27 14:36:11 2017
 
 from __future__ import absolute_import
 
-
-import os
 import numpy as np
 from xml.etree import cElementTree as ElementTree
-from collections import OrderedDict
 
-def read_vtu(path, tag):
+
+def read_xml(path, tag):
     """
-read_vtu
+read_xml
 ********
 
-Read .vtu file and extract the data under with specified tag.
+Read .xml file and extract the data with specified tag.
 
 Parameters
 ----------
@@ -61,7 +83,7 @@ path : str
 
 name : str
     Tag of the to retrieve in the .vtu file
-    
+
 Return
 ------
 
@@ -69,74 +91,74 @@ data : numpy array
     The data with specified tag from the .vtu file located at path.
     """
     tree = getElementTree(path)
-    text  = getDataFromElementTree(tree, tag)
+    text = getDataFromElementTree(tree, tag)
     array = text2array(text)
     return array
-    
 
 
-def getElementTree(vtu_path):
+def getElementTree(path):
     """
-    get the root ElementTree from the .vtu file with path "vtu_path". 
+    get the root ElementTree from the .vtu file with path "vtu_path".
     """
-    vtu_file = open(vtu_path, mode='r')
+    vtu_file = open(path, mode='r')
     tree = ElementTree.parse(vtu_file)
     vtu_file.close()
     return tree
 
-    
-def getDataFromElementTree(tree, data_name):
+
+def getDataFromElementTree(tree, dataname):
     """
-    Extract the data in xml file "filename" with tag "dataname" and return 
+    Extract the data with tag "dataname" in xml tree and return
     the associated text (string).
-    
+
     Usage
     ------
     data_text = getDataFromElementTree(tree, data_name)
-    
+
     Parameters
     ----------
     tree: ElementTree.tree
         An ElementTree.tree (see function getElementTree).
-        
+
     dataname: raw str
         The label of the data to extract from the ElementTree.
-        
+
     Return
     -------
     text: string
         The data with tag "dataname" in file "filename" as a multilines string.
     """
-    
+
     # Init output
     text = None
-    
+
     # list all elements in the xml tree with tag DataArray
     for elem in tree.getiterator('DataArray'):
         # if the name of data is dataname
-        if elem.attrib.has_key('Name') and elem.attrib['Name'] == data_name:
+        if 'Name' in elem.attrib and elem.attrib['Name'] == dataname:
             # update text output with the xml element text
             text = elem.text
-        
-    # raise an error if text is still None (no DataArray with Name='dataname' found)
-    assert text is not None, 'Can not find tag "{}" in xml tree.'.format(data_name)
-    
+
+    # raise an error if text is still None
+    assert text is not None, \
+        'Can not find tag "{}" in xml tree.'.format(dataname)
+
     return text
 
 
 def getCoordinatesFromElementTree(tree):
     """
     Return the coordinates of mesh points from xml tree (ElementTree) as text.
-    
+
     Usage
     ------
     data_text = getCoordinatesFromElementTree(tree)
-    
+
     Parameters
     ----------
     tree: ElementTree.tree
         An ElementTree.tree (see function getElementTree here).
-        
+
     Return
     -------
     text: string
@@ -144,17 +166,17 @@ def getCoordinatesFromElementTree(tree):
     """
     return tree.getiterator('Points')[0][0].text
 
-    
+
 def text2array(text):
     """
     Format the data from text (string) to a 2D numpy.array.
     """
     # init the data as a list
     data = list()
-    
+
     # get the data from each text line and append the data list
     for line in text.splitlines()[1:-1]:
         data.append(np.fromstring(line, dtype=float, sep=' '))
-        
+
     # transform the list of 1D array to a 2D array and return
     return np.array(data)

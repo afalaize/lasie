@@ -14,6 +14,9 @@ from vtk.util.numpy_support import numpy_to_vtk
 from xml.etree import cElementTree as ElementTree
 from decimal import Decimal
 
+import numpy as np
+
+
 def setPoints(vtkUnstructuredGrid, mesh):
     nx, nc = mesh.shape
 
@@ -21,8 +24,9 @@ def setPoints(vtkUnstructuredGrid, mesh):
     vtkPoints.SetNumberOfPoints(nx)
 
     for i, x in enumerate(mesh):
-#        vtkPoints.InsertPoint(i, *(list(x) + [0,]))
-        vtkPoints.InsertPoint(i, *x)
+        l = int(3-x.shape[0])
+        xpoint = list(x) + [0,]*l
+        vtkPoints.InsertPoint(i, *xpoint)
 
     vtkUnstructuredGrid.SetPoints(vtkPoints)
 
@@ -49,7 +53,7 @@ def insertCells(vtkUnstructuredGrid, shape):
                     vtkUnstructuredGrid.InsertNextCell(vtk.VTK_HEXAHEDRON,
                                                        vtkIdList)
     except ValueError:
-        nc, nx, ny = shape
+        nc, nx, ny = list(map(int, shape))
         for i in range(nx-1):
             for j in range(ny-1):
                     index = ny*i + j
@@ -62,6 +66,25 @@ def insertCells(vtkUnstructuredGrid, shape):
                     vtkUnstructuredGrid.InsertNextCell(vtk.VTK_TETRA,
                                                        vtkIdList)
 
+
+def prepare_mesh_for_3D_vtk_rendering(mesh, shape):
+
+    m_shape = map(int, mesh.shape)
+
+    if m_shape[1] == 1:
+        raise NotImplemented('lasie_rom package cannot write vtk for 1d data.')
+
+    if m_shape[1] == 2:
+        defect = 1
+        h = np.min(np.max(np.diff(mesh, axis=0), axis=0))
+        additional_coords = np.vstack((np.zeros((m_shape[0], defect)),
+                                       np.ones((m_shape[0], defect))*h))
+        mesh = np.hstack((additional_coords, np.vstack((mesh, )*2)))
+        shape = map(int, [3, ] + [2, ]*defect + list(shape[1:]))
+    else:
+        pass
+
+    return mesh, shape
 
 
 def write_vtk(mesh, shape, data, path):
@@ -77,13 +100,15 @@ def write_vtk(mesh, shape, data, path):
         (nx, ny, nz, ...) the dimensions of the grid in each direction.
 
     data: dic
-        The data to write. Each key is the data name (xml tag) and each value 
+        The data to write. Each key is the data name (xml tag) and each value
         is the corresponding array with shape (nx, n_data_components).
 
     path: str
         The path to the file to write the data in.
     """
     # importé et modifié depuis code_Erwan\Routines_vtk.py, fonction "ecrivtk2"
+
+    mesh, shape = prepare_mesh_for_3D_vtk_rendering(mesh, shape)
 
     vtkUnstructuredGrid = vtk.vtkUnstructuredGrid()
 
@@ -93,10 +118,18 @@ def write_vtk(mesh, shape, data, path):
     npoints, nc = mesh.shape
     nc2 = shape[0]
     assert nc2 == nc
-
     for k in data.keys():
+        d = data[k]
+        npoints_data, nc_data = d.shape
+        if not npoints_data == npoints:
+            if nc_data == 1:
+                data[k] = np.vstack((d, d))
+            elif nc_data == 2:
+                defect = 1
+                additional_data = np.zeros((npoints_data, defect))
+                d = np.hstack((additional_data, d))
+                data[k] = np.vstack((d, )*2)
         npoints_data, nc_data = data[k].shape
-        assert npoints == npoints_data   
         vtkFloatArray = numpy_to_vtk(data[k].ravel())
         vtkFloatArray.SetNumberOfComponents(nc_data)
         vtkFloatArray.SetName(k)
@@ -122,7 +155,7 @@ def write_vtk(mesh, shape, data, path):
 #        (nx, ny, nz, ...) the dimensions of the grid in each direction.
 #
 #    data: dic
-#        The data to write. Each key is the data name (xml tag) and each value 
+#        The data to write. Each key is the data name (xml tag) and each value
 #        is the corresponding array with shape (nx, n_data_components).
 #
 #    path: str
@@ -139,9 +172,9 @@ def write_vtk(mesh, shape, data, path):
 #        else:
 #            assert shape[1] == mesh.shape[1]
 #            vtk_data.append(pyvtk.Vectors(d, name=k))
-#        
+#
 #    tri = Delaunay([list(e) for e in mesh])
-#    
+#
 #    vtk = pyvtk.VtkData(\
 #      pyvtk.UnstructuredGrid(mesh,
 #        tetra=tri.simplices
@@ -149,10 +182,10 @@ def write_vtk(mesh, shape, data, path):
 #      pyvtk.PointData(*vtk_data),
 #      title
 #      )
-#      
+#
 #    vtk = pyvtk.VtkData(pyvtk.UnstructuredGrid(mesh),
 #                        )
-#    
+#
 #    vtk.tofile(path)
 #
 

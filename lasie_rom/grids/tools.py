@@ -10,7 +10,7 @@ import numpy as np
 from ..config import ORDER
 
 
-def generate(minmax, h=1.):
+def generate(minmax, h=1., npoints=None):
     """
 Return an N-dimensional regular grid.
 
@@ -25,6 +25,12 @@ h: float or iterable
     axis. If h is an iterable with length N, h[i] is the grid spacing over
     axis i.
 
+npoints: float or iterable
+    Number(s) of grid points. If not None, the grid spacing h is determinated
+    from the prescribed numbers of elements. Else if a float, the number of
+    point is the same over every axis. Else if an iterable with length N,
+    npoints[i] is the number of elements over axis i.
+
 Return
 -------
 grid: array
@@ -38,8 +44,11 @@ h : tuple of floats
     h_grid = list()
     for i, xminmax in enumerate(minmax):
         ximin, ximax = xminmax
-        hi = h[i] if isinstance(h, (tuple, list)) else h
-        nxi = max([1, int((ximax-ximin)/hi)])
+        if npoints is None:
+            hi = h[i] if isinstance(h, (tuple, list)) else h
+            nxi = max([1, int((ximax-ximin)/hi)])
+        else:
+            nxi = npoints[i] if isinstance(npoints, (tuple, list)) else npoints
         xi_grid = np.linspace(ximin, ximax, nxi)
         if nxi > 1:
             hi_grid = np.diff(xi_grid)[0]

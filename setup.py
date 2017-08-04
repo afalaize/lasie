@@ -59,7 +59,7 @@ setup(name='lasie_rom',
       install_requires=[
           'numpy',
           'matplotlib',
-          'pytables',
+          'tables',
           'progressbar2'],
       test_suite='nose.collector',
       tests_require=['nose'],
