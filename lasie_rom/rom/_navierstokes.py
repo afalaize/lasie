@@ -20,7 +20,7 @@ class ReducedOrderModel(object):
         """
         """
         self.paths = paths
-        
+
         for k in self.paths:
             setattr(self, k, HDFReader(self.paths[k]))
 
@@ -253,7 +253,6 @@ def C(phi, grad_phi):
 def F(phi, grad_phi, u_moy, grad_u_moy, mu, rho, stab=0):
     nmodes = phi.shape[2]
     mu_modes = mu_stab(mu, stab, nmodes)
-    print(mu_modes)
 
     def F_bar():
         """

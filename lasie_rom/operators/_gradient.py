@@ -62,7 +62,7 @@ See also
         ai = a[:, i].reshape(shape[1:], order=ORDER)
         # compute gradient
         gi = np.gradient(ai, *h, edge_order=edge_order)
-        if len(gi.shape) == 1:
+        if isinstance(gi, np.ndarray):
             gi = [gi, ]
         # iterate over the components of the gradient
         for j in range(shape[0]):

@@ -9,7 +9,7 @@ __all__ = ['pod', 'deim', 'io', 'parallelization',
            'grids', 'path_to_package']
 
 __author__ = "Antoine Falaize"
-__version__ = "17.07"
+__version__ = "17.08"
 __licence__ = \
     "CEA CNRS Inria Logiciel Libre License, version 2.1 (CeCILL-2.1)"
 __author__ = "Antoine Falaize"

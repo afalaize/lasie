@@ -16,9 +16,10 @@ import matplotlib.pyplot as plt
 plt.close('all')
 
 
-nx = 1000
+nx = 200
 nt = 200
-nm = 10
+nm = 100
+threshold = 1e-6
 
 Omega = np.linspace(-1, 1, nx)
 T = np.linspace(0, 1, nt)
@@ -50,7 +51,7 @@ U = concatenate_in_given_axis((u(t) for t in T), 2)
 
 u_mean, U_fluc = pod.meanfluc(U)
 
-Phi = pod.compute_basis(U, threshold=0, nmax=nm)
+Phi = pod.compute_basis(U, threshold=threshold, nmax=nm)
 
 coeffs = np.einsum('xcm,xct->mt', Phi, U_fluc)
 
