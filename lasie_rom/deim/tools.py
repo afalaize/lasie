@@ -19,20 +19,20 @@ def get_major_element(array):
     ======
     argmax
     ======
-    
-    Returns the index of the maximum value of the module of array :code:`a` 
-    with shape :code:`̀(nx,)`: 
-    
+
+    Returns the index of the maximum value of the module of array :code:`a`
+    with shape :code:`̀(nx,)`:
+
     Parameters
     ----------
     a : array_like with shape :code:`(nx, )`
         Input array organized as :math:`\\big[\mathbf a\\big]_{i,j} = a_j(x_i)`
-    
+
     Returns
     -------
     index : int
         Index into the array.
-    
+
     Notes
     -----
     In case of multiple occurrences of the maximum value, the index
@@ -44,22 +44,22 @@ def get_major_element(array):
 
 def get_major_component(array):
     """
-    Return the index of the component which exhibits the greatest (discrete) 
+    Return the index of the component which exhibits the greatest (discrete)
     L2 norm.
-    
+
     Parameter
     ---------
-    
+
     array: numpy array
-        Shape is (nx, nc) with nx the number of spatial grid points and nc the 
+        Shape is (nx, nc) with nx the number of spatial grid points and nc the
         number of spatial component.
-        
+
     Return
-    
+
     i : positive int
         Index i such that for all j: || array[:,j] || <= || array[:,i] ||.
     """
-    
+
     nx, nc = array.shape
     norms = [norm(array[:, i]) for i in range(nc)]
     return int(np.argmax(norms))
@@ -71,17 +71,17 @@ def get_major_component(array):
 def temp_coeffs(P, B, b):
     """
     Returns the coefficients in the DEIM  procedure
-    
+
     Parameters
     ----------
-    
+
     P : numpy.ndarray
         Stacked components DEIM projector with shape (nx*nf, npsi).
 
     Psi : numpy.ndarray
-        Stacked components of reduced basis for the non-linear function, with 
+        Stacked components of reduced basis for the non-linear function, with
         shape (nx*nf, npsi).
-        
+
     psi : numpy.ndarray
          Stacked reduced basis element.
     """
@@ -128,27 +128,27 @@ via discrete empirical interpolation. SIAM Journal on Scientific Computing, \
 32(5), 2737-2764.
 
     """
-    
+
     nx, nc, ne = B.shape
 
     rho = list()
     mu = list()
-    
+
     rho.append(get_major_component(B[:, :, 0]))
     mu.append(get_major_element(B[:, rho[0], 0]))
-    
+
 
     # partial projector (one element)
     p = np.zeros((nx, nc, 1))
     p[mu[0], rho[0], 0] = 1.
     P = p
-    
+
     B_temp = B[:, :, :1]
     for i, b in enumerate(B[: ,: ,1:].T, 1):
-        
+
         # i-th basis element
         b = b.T
-        
+
         # obtain coefficients
         c = temp_coeffs(P, B_temp, b)
 
@@ -158,17 +158,17 @@ via discrete empirical interpolation. SIAM Journal on Scientific Computing, \
         # i-th DEIM index
         rho_j = get_major_component(r)
         mu_j = get_major_element(r[:, rho_j])
-        
+
         rho.append(rho_j)
         mu.append(mu_j)
-        
+
         p = np.zeros((nx, nc, 1))
         p[mu[-1], rho[-1], 0] = 1.
-         
+
         P = np.concatenate((P, p), axis=2)
 
         B_temp = np.concatenate((B_temp, b[:, :, np.newaxis]), axis=2)
-        
+
     # --- END FOR --- #
 
     # return projector
@@ -178,7 +178,7 @@ via discrete empirical interpolation. SIAM Journal on Scientific Computing, \
 
 def interpolated_func(func, Phi, Psi, mean_phi=None):
     """
-Return the DEIM interpolation of function func with DEIM projector P and POD 
+Return the DEIM interpolation of function func with DEIM projector P and POD
 basis Phi and Psi
 
 Parameters
@@ -186,39 +186,40 @@ Parameters
 
 func: function
     Function to interpolate :math:`\\mathbf f: \\mathbb R^{n_u}\\rightarrow \
-\mathbb R^{n_f}`. 
+\mathbb R^{n_f}`.
 
 Phi: array_like
     POD basis for the function variable    .
 
 Psi: array_like
     POD basis for the function evaluation.
-    
+
+mean_phi: array-like
+    mean field to account fo rin the construction of the deim function
+
 Return
 -------
 
 deimfunc: function
-    Interpolated function :math:`\tilde{\mathbf f}: \mathbb R^{n_\phi}\rightarrow \
-\mathbb R^{n_\phi}`.
+    Interpolated function :math:`\\tilde{\\mathbf f}: \\mathbb R^{n_\\phi}\\rightarrow \\mathbb R^{n_\\phi}`.
     """
 
-    nx, nu, nphi = Phi.shape    
-    nx, nf, npsi = Psi.shape    
-       
+    nx, nu, nphi = Phi.shape
+    nx, nf, npsi = Psi.shape
+
     P, rho, mu = projector(Psi)
-    
+
     M = np.einsum('mki,mkj->ij', P, Psi)
     iM = np.linalg.inv(M)
 
-        
     if mean_phi is None:
         mean_phi = np.zeros((nx, nu))
-        
+
     def deim_func(a):
         args = [np.einsum('km,m->k', Phi[mu[j], :, :], a) + mean_phi[mu[j], :] for j in range(npsi)]
         F = np.array([func[rho[j]](*args[j]) for j in range(npsi)])
         return np.einsum('ij,j->i', iM, F.flatten())
-    
+
     deim_func.func_doc = """
 DEIM interpolation of nonlinear function.
 
@@ -227,12 +228,11 @@ Parameter
 
 a: array_like with shape ({0}, )
     Activation coefficients for the solution basis functions.
-    
-Return 
+
+Return
 ------
 
 res: array_like with shape ({1}, )
     Evaluation of func on specially selected arguments.
 """.format(nphi, npsi)
     return deim_func
-    

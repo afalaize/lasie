@@ -1,8 +1,13 @@
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 """
-Created on Thu Feb 02 11:53:24 2017
+Created on Tue Sep 19 11:43:09 2017
 
 @author: afalaize
+
+Reduced order model for fluid structure interaction with volumic penalization
+for imposed velocity
+
 """
 
 from __future__ import division
@@ -140,9 +145,13 @@ class ReducedOrderModel(object):
 ###############################################################################
 
 
-def A(phi):
+# rhof: fluid density
+# phi: pod basis associated with velocity
+
+
+def A(phi, rhof):
     """
-    Return the coefficients array A[i, j] = phi[x, c, i]*phi[x, c, j]
+    Return the coefficients array A[i, j] = rhof*phi[x, c, i]*phi[x, c, j]
     with dims (npod, npod)
 
     Input
@@ -151,24 +160,39 @@ def A(phi):
     phi : array with dims (nx, nc, npod)
         POD basis.
 
+    rhof: float
+        fluid density
+
     Output
     ------
 
     A : array with dims (npod, npod)
-        A[i, j] = phi[x, c, i]*phi[x, c, j]
+        A[i, j] = rhof*phi[x, c, i]*phi[x, c, j]
 
     """
-    return np.einsum('mci,mcj->ij', phi, phi)
-#    return np.eye(phi.shape[1])
+    return rhof*np.einsum('mci,mcj->ij', phi, phi)
 
 
 def mu_stab(mu, stab, nmodes):
+    """
+    Return a vector of viscosity coefficients with i-th element given by
+    mu_i = mu*(1+stab*i)
+
+    Parameters
+    ----------
+    mu : float
+        reference velocity
+    stab : float
+        linear progression
+    nmodes : int
+        number of modes (i.e. length of output)
+    """
     return mu*(1+stab*(1+np.array(range(nmodes))))
 
 
-def B(phi, grad_phi, u_moy, grad_u_moy, mu, rho, stab=0):
+def B(phi, grad_phi, u_moy, grad_u_moy, muf, rhof, stab=0):
     nmodes = phi.shape[2]
-    mu_modes = mu_stab(mu, stab, nmodes)
+    mu_modes = mu_stab(muf, stab, nmodes)
 
     def B_bar():
         """
@@ -197,7 +221,7 @@ def B(phi, grad_phi, u_moy, grad_u_moy, mu, rho, stab=0):
         """
         t1 = np.einsum('mcdj,md->mcj', grad_phi, u_moy)
         t2 = np.einsum('mcd,mdj->mcj', grad_u_moy, phi)
-        return np.einsum('mcj,mci->ij', t1 + t2, phi)
+        return rhof*np.einsum('mcj,mci->ij', t1 + t2, phi)
 
     def B_tilde():
         """
@@ -216,51 +240,80 @@ def B(phi, grad_phi, u_moy, grad_u_moy, mu, rho, stab=0):
             b_tilde[i, j] = (u_moy[m, d]*grad_phi[m, d, c, j] +
                               phi[m, d, j]*grad_u_moy[m, d, c])*phi[m, c, i]
         """
-        D = (grad_phi + grad_phi.swapaxes(1, 2))/2.
+        D = grad_phi + grad_phi.swapaxes(1, 2)
         trace_arg = np.einsum('mcdj,mcdi->cdij', D, grad_phi)
-        return (2./rho)*np.einsum('ccij,i->ij', trace_arg, mu_modes)
+        return np.einsum('ccij,i->ij', trace_arg, mu_modes)
 
     return B_bar() + B_tilde()
 
+###############################################################################
+# TO DO
 
-def C(phi, grad_phi):
-    """
-    Return the coefficients array
-    C[i, j, k] = phi[m, k, c]*grad_phi[m, j, c, d]*phi[m, i, d]
-    with dims (npod, npod, npod)
-
-    Input
-    ------
-
-    phi : array with dims (nx, npod, nc)
-        POD basis.
-
-    grad_phi : array with dims (nx, npod, nc, nc)
-
-    Output
-    ------
-
-    C : array with dims (npod, npod, npod)
-        C[i, j, k] = phi[m, k, c]*gradphi[m, j, c, d]*phi[m, i, d]
-
-    """
-    temp = np.einsum('mcdj,mdk->mcjk', grad_phi, phi)
-    return np.einsum('mcjk,mci->ijk', temp, phi)
-
-
-def F(phi, grad_phi, u_moy, grad_u_moy, mu, rho, stab=0):
-    nmodes = phi.shape[2]
-    mu_modes = mu_stab(mu, stab, nmodes)
-
-    def F_bar():
-        """
-        """
-        return np.einsum('mc,mdc,mdi->i', u_moy, grad_u_moy, phi)
-
-    def F_tilde():
-        """
-        """
-        D = (grad_u_moy + grad_u_moy.swapaxes(1, 2))/2.
-        trace_arg = np.einsum('mcd,mdei->cei', D, grad_phi)
-        return (2./rho)*np.einsum('cci,i->i', trace_arg, mu_modes)
-    return F_bar() + F_tilde()
+#
+#
+#def C(phi, L, umoy, rho_delta):
+#    """
+#    Return the coefficients array
+#    C[i, j] = rho_delta*L[m, j]*umoy[m, c]*phi[m, c, i]
+#    with dims (nL, nPhi)
+#
+#    Input
+#    ------
+#
+#    phi : array with dims (nx, npod, nc)
+#        POD basis.
+#
+#    grad_phi : array with dims (nx, npod, nc, nc)
+#
+#    Output
+#    ------
+#
+#    C : array with dims (nL, npod)
+#        C[i, j] = rho_delta*L[m, j]*umoy[m, c]*phi[m, i, c]
+#
+#    """
+#    temp = np.einsum('mj,mc->mcj', L, umoy)
+#    return rho_delta*np.einsum('mcj,mci->ij', temp, phi)
+#
+#
+#def C(phi, L, umoy, rho_delta):
+#    """
+#    Return the coefficients array
+#    D[i, j] = rho_delta*L[m, j]*umoy[m, c]*phi[m, c, i]
+#    with dims (nL, nPhi)
+#
+#    Input
+#    ------
+#
+#    phi : array with dims (nx, npod, nc)
+#        POD basis.
+#
+#    grad_phi : array with dims (nx, npod, nc, nc)
+#
+#    Output
+#    ------
+#
+#    C : array with dims (nL, npod)
+#        C[i, j] = rho_delta*L[m, j]*umoy[m, c]*phi[m, i, c]
+#
+#    """
+#    temp = np.einsum('mj,mc->mcj', L, umoy)
+#    return rho_delta*np.einsum('mcj,mci->ij', temp, phi)
+#
+#
+#def F(phi, grad_phi, u_moy, grad_u_moy, mu, rho, stab=0):
+#    nmodes = phi.shape[2]
+#    mu_modes = mu_stab(mu, stab, nmodes)
+#
+#    def F_bar():
+#        """
+#        """
+#        return np.einsum('mc,mdc,mdi->i', u_moy, grad_u_moy, phi)
+#
+#    def F_tilde():
+#        """
+#        """
+#        D = (grad_u_moy + grad_u_moy.swapaxes(1, 2))/2.
+#        trace_arg = np.einsum('mcd,mdei->cei', D, grad_phi)
+#        return (2./rho)*np.einsum('cci,i->i', trace_arg, mu_modes)
+#    return F_bar() + F_tilde()

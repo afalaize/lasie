@@ -53,7 +53,7 @@ for i, x in enumerate(mesh.T):
     values_x *= np.sin(2*np.pi*(i+1)*x)
     values_y *= np.sin(2*np.pi*(i+1)*x)
     values_z *= np.sin(2*np.pi*(i+1)*x)
-    
+
 vector = concatenate_in_given_axis((values_x, values_y, values_z), 1)
 vector_name = 'my_vector'
 data.update({vector_name: vector})
@@ -67,9 +67,10 @@ io.vtk.write(mesh, gshape, data, path)
 # READ vtu
 
 data_read = io.vtk.read(path)
-    
+
 # =========================================================================== #
 # TEST
 
 for k in data.keys():
-    assert all((data_read[k] == data[k]).flatten())
+    if not all((data_read[k] == data[k]).flatten()):
+        raise NotImplementedError('Error in READ/WRITE of .vtu files')

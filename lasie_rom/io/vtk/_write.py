@@ -8,6 +8,8 @@ Created on Tue Jan 24 17:07:22 2017
 
 from __future__ import absolute_import
 
+from lasie_rom.config import ORDER
+
 import vtk
 from vtk.util.numpy_support import numpy_to_vtk
 
@@ -68,19 +70,33 @@ def insertCells(vtkUnstructuredGrid, shape):
 
 
 def prepare_mesh_for_3D_vtk_rendering(mesh, shape):
+    """
+    Add a dimension to the mesh if the mesh is 2D. 1D meshes are not supported.
+    """
 
+    # recover mesh shape
     m_shape = map(int, mesh.shape)
 
+    # 1D meshes are not supported
     if m_shape[1] == 1:
         raise NotImplemented('lasie_rom package cannot write vtk for 1d data.')
 
-    if m_shape[1] == 2:
-        defect = 1
+    # Add a component if the mesh is 2D
+    # The thickness in the 3rd dimension is ewual to the mesh size h
+    elif m_shape[1] == 2:
+        x0 = np.zeros((m_shape[0], 1))
+
         h = np.min(np.max(np.diff(mesh, axis=0), axis=0))
-        additional_coords = np.vstack((np.zeros((m_shape[0], defect)),
-                                       np.ones((m_shape[0], defect))*h))
+        x1 = np.ones((m_shape[0], 1))*h
+
+        additional_coords = np.vstack((x0, x1))
         mesh = np.hstack((additional_coords, np.vstack((mesh, )*2)))
-        shape = map(int, [3, ] + [2, ]*defect + list(shape[1:]))
+        shape = map(int,
+                    [3, ] +    # mesh dim is now 3
+                    [2, ] +    # We added two points in the 3rd dimension
+                    list(shape[1:])   # Here we recover the previous shape
+                    )
+    # Do nothing for 3D meshes
     else:
         pass
 
@@ -119,22 +135,22 @@ def write_vtk(mesh, shape, data, path):
     nc2 = shape[0]
     assert nc2 == nc
     for k in data.keys():
-        d = data[k]
-        npoints_data, nc_data = d.shape
+        npoints_data, nc_data = data[k].shape
         if not npoints_data == npoints:
             if nc_data == 1:
-                data[k] = np.vstack((d, d))
+                data[k] = np.vstack((data[k], data[k]))
             elif nc_data == 2:
-                defect = 1
-                additional_data = np.zeros((npoints_data, defect))
-                d = np.hstack((additional_data, d))
-                data[k] = np.vstack((d, )*2)
+                additional_data = np.zeros((npoints_data, 1))
+                # add a column of zeros in fisrt position
+                data[k] = np.hstack((additional_data, data[k]))
+                # duplicate data to introduce thickness
+                data[k] = np.vstack((data[k], )*2)
         npoints_data, nc_data = data[k].shape
-        vtkFloatArray = numpy_to_vtk(data[k].ravel())
+        vtkFloatArray = numpy_to_vtk(data[k])
         vtkFloatArray.SetNumberOfComponents(nc_data)
         vtkFloatArray.SetName(k)
         vtkUnstructuredGrid.GetPointData().AddArray(vtkFloatArray)
-        #vtkUnstructuredGrid.GetPointData().SetActiveVectors(k)
+#        vtkUnstructuredGrid.GetPointData().SetActiveVectors(k)
 
     vtkfile = vtk.vtkXMLUnstructuredGridWriter()
     vtkfile.SetInputData(vtkUnstructuredGrid)
