@@ -1,5 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+
 *.py[cod]
 *$py.class
 
@@ -137,3 +138,21 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# For mac only.
+.nojekyll
+
+# Compiled python modules.
+*.pyc
+
+# Setuptools distribution folder.
+/dist/
+
+# Conda build folder.
+/build/
+
+# Spyder project settings
+/.spyderproject/
+# spyder project infos.
+/.spyproject/
+
