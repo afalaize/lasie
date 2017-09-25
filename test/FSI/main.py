@@ -19,4 +19,3 @@ dataname = None
 parameters.update({'dataname': dataname})
 
 resultsFolderName = build_resultsFolderName(parameters)
-#resultsFolderName = '/Volumes/AFALAIZE/en_cours/code/' + resultsFolderName

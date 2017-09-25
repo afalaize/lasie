@@ -21,16 +21,25 @@ import numpy
 velocity_basis_hdf = io.hdf.HDFReader(paths['basis'][0], openFile=True)
 velocity_meanfluc_hdf = io.hdf.HDFReader(paths['meanfluc'][0], openFile=True)
 
+print('Build temp_a')
 temp_a = navierstokes_rotation.temp_a(velocity_basis_hdf.basis[:])
-temp_b_rho = navierstokes_rotation.temp_b_rho(velocity_basis_hdf.basis[:], velocity_basis_hdf.basis_grad[:],
-                                              velocity_meanfluc_hdf.mean[:], velocity_meanfluc_hdf.mean_grad[:])
-temp_b_nu = navierstokes_rotation.temp_a(velocity_basis_hdf.basis_grad[:])
-temp_c = navierstokes_rotation.temp_a(velocity_basis_hdf.basis[:], velocity_basis_hdf.basis_grad[:])
-temp_d = navierstokes_rotation.temp_a(velocity_basis_hdf.basis_grad[:])
-temp_f_rho = navierstokes_rotation.temp_b_rho(velocity_basis_hdf.basis[:],
+print('Build temp_b_rho')
+temp_b_rho = navierstokes_rotation.temp_b_rho(velocity_basis_hdf.basis[:],
+                                              velocity_meanfluc_hdf.mean[:],
+                                              velocity_basis_hdf.basis_grad[:],
+                                              velocity_meanfluc_hdf.mean_grad[:])
+print('Build temp_b_nu')
+temp_b_nu = navierstokes_rotation.temp_b_nu(velocity_basis_hdf.basis_grad[:])
+print('Build temp_c')
+temp_c = navierstokes_rotation.temp_c(velocity_basis_hdf.basis[:], velocity_basis_hdf.basis_grad[:])
+print('Build temp_d')
+temp_d = navierstokes_rotation.temp_d(velocity_basis_hdf.basis_grad[:])
+print('Build temp_f_rho')
+temp_f_rho = navierstokes_rotation.temp_f_rho(velocity_basis_hdf.basis[:],
                                               velocity_meanfluc_hdf.mean[:],
                                               velocity_meanfluc_hdf.mean_grad[:])
-temp_f_nu = navierstokes_rotation.temp_b_rho(velocity_basis_hdf.basis_grad[:],
+print('Build temp_b_nu')
+temp_f_nu = navierstokes_rotation.temp_f_nu(velocity_basis_hdf.basis_grad[:],
                                              velocity_meanfluc_hdf.mean_grad[:])
 
 data = {'a': temp_a,
@@ -41,21 +50,33 @@ data = {'a': temp_a,
         'f_rho': temp_f_rho,
         'f_nu': temp_f_nu}
 
+print('Save {}'.format(paths['matrices']))
 # write hdf for rom matrices
 io.hdf.data2hdf(data, paths['matrices'])
 
 # --------------------------------------------------------------------------- #
-# Project the snapshot on the pod basis
+# %% Project the snapshot on the pod basis
 
+print('Build coeffs')
 # instanciate TimeSerie
-ts = TimeSerie(paths['ihdf'])
+ts = TimeSerie(paths['ihdf'][0])
 
 # Open hdf files
 ts.openAllFiles()
 
+if options['dataname'] is not None:
+    dataname = options['dataname']
+else:
+    d = ts.data[0]
+    d.openHdfFile()
+    args = dir(d)
+    temp = [a.startswith('f_') for a in args]
+    dataname = args[temp.index(True)]
+    d.closeHdfFile()
+
 # instanciate TimeSerie
 def coefficients():
-    for u in ts.generator(options['dataname'])():
+    for u in ts.generator(dataname)():
         yield numpy.einsum('xc,xci->i',
                            u-velocity_meanfluc_hdf.mean[:],
                            velocity_basis_hdf.basis[:])
@@ -64,6 +85,7 @@ coeffs = misc.concatenate_in_given_axis(coefficients(), 0)
 
 data = {'coeffs': coeffs}
 
+print('Save {}'.format(paths['coeffs']))
 # write hdf for rom matrices
 io.hdf.data2hdf(data, paths['coeffs'])
 

@@ -37,12 +37,12 @@ def build_parameters(lambda1, lambda2, lambda3, lambda4, eps_tanh):
     rot_center = np.array((0.5, 0.5))
     ell_center = rot_center + np.array((lambda3*lambda1, 0))
     parameters = {'rho': 1.,         # masse volumique du fluide
-                  'rho_delta': 1e3,   # rho_solide - rho_fluide
+                  'rho_delta': 0,   # rho_solide - rho_fluide
                   'dt': 0.005,       # pas de temps
                   'T': 30.,          # temps final
                   'nb_export': 2,    # number of time-steps between each saving
                   'nu': 1./lambda4,  # visco dynamique du fluide, nu = 1/Re
-                  'nu_delta':1e3,    # nu_solide - nu_fluide
+                  'nu_delta': 0,    # nu_solide - nu_fluide
                   'pen': 1e-9,       # Coefficient de penalisation volumique (~0)
                   'rot_center': rot_center,  # Center of rotation of ellipse
                   'ell_center': ell_center,  # Center of ellipse
@@ -68,12 +68,12 @@ def build_parameters(lambda1, lambda2, lambda3, lambda4, eps_tanh):
 
 def build_resultsFolderName(parameters):
     resultsFolderName = "results"
-    resultsFolderName += "_radius{0}".format(parameters['lambda'][0])
-    resultsFolderName += "_shape{0}".format(parameters['lambda'][1])
-    resultsFolderName += "_excentr{0}".format(parameters['lambda'][2])
-    resultsFolderName += "_Re{0}".format(parameters['lambda'][3])
-    resultsFolderName += "_eps_tanh{0}".format(parameters['eps_tanh'])
-    resultsFolderName += "_mesh{0}X{0}".format(int(parameters['h_mesh']**-1))
+    resultsFolderName += "_radius={0}".format(parameters['lambda'][0])
+    resultsFolderName += "_shape={0}".format(parameters['lambda'][1])
+    resultsFolderName += "_excentr={0}".format(parameters['lambda'][2])
+    resultsFolderName += "_Re={0}".format(parameters['lambda'][3])
+    resultsFolderName += "_eps_tanh={0}".format(parameters['eps_tanh'])
+    resultsFolderName += "_mesh={0}X{0}".format(int(parameters['h_mesh']**-1))
     return resultsFolderName
 
 # --------------------------------------------------------------------------- #

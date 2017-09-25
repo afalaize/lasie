@@ -19,8 +19,8 @@ else:
 
 # --------------------------------------------------------------------------- #
 # LOAD OPTIONS
-TMIN = 25.      # Time for the first snapshot
-TMAX = 30.      # Time for the last snapshot
+TMIN = 15.      # Time for the first snapshot
+TMAX = 20.      # Time for the last snapshot
 
 TEXPORT = parameters['nb_export']*parameters['dt']
 
@@ -49,3 +49,9 @@ options['pod'] = {'thld': THRESHOLD,
 
 options['rom'] = {'dt': TEXPORT*options['load']['decim'],
                   'stab': 0.}
+
+
+# --------------------------------------------------------------------------- #
+# ROM OPTIONS
+eps_u = 1e-6
+eps_lambda = 10
