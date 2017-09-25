@@ -1,5 +1,6 @@
 #
 from . import _navierstokes as navierstokes
-from . import _navierstokes_rotation as navierstokes_rotation
+from . import _fsi_rigidity as fsi_rigidity
+from . import _fsi_velocity as fsi_velocity
 
-__all__ = ['navierstokes', 'navierstokes_rotation']
+__all__ = ['navierstokes', 'fsi_rigidity', 'fsi_velocity']
