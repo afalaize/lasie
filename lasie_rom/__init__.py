@@ -1,12 +1,19 @@
 #
 from __future__ import absolute_import
-from . import pod, deim, io, parallelization, grids, operators
+
+from . import pod
+from . import deim
+from . import io
+from . import parallelization
+from . import grids
+from . import operators
+from . import plots
 
 import os
 path_to_package = os.path.realpath(__file__)[:os.path.realpath(__file__).rfind(os.sep)]
 
 __all__ = ['pod', 'deim', 'io', 'parallelization',
-           'grids', 'path_to_package', 'operators']
+           'grids', 'path_to_package', 'operators', 'plots']
 
 __author__ = "Antoine Falaize"
 __version__ = "17.09.a"

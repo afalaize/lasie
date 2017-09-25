@@ -118,7 +118,7 @@ def build_lambdified_levelset(ell_center, ell_radius, rot_center):
                                                rot_center)
     x = sy.symbols('x:2', real=True)
     theta_symb = sy.symbols('theta', real=True, positive=True)
-    return sy.lambdify([theta_symb, ] + x, levelset, modules='numpy')
+    return sy.lambdify([theta_symb, ] + list(x), levelset, modules='numpy')
 
 
 def build_Levelset_Expression(ell_center, ell_radius, rot_center):
