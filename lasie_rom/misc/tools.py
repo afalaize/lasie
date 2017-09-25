@@ -9,6 +9,37 @@ Created on Mon Apr 24 19:16:35 2017
 import numpy as np
 from ..config import ORDER
 
+
+def sympyExpr2numpyFunc(expr, args, subs):
+    """
+    Build a numerical evaluation of expr(args) after substitutions of subs.
+
+    Inputs
+    ------
+
+    expr : sympy expresion
+
+    args : sequence of sympy symbols for arguments
+
+    subs : dictionary {symbol: value, ...} with symbol a sympy symbol and value
+    a numeric for substition.
+
+    Return
+    ------
+
+    func : numerical function
+    Evaluation expr(args, subs) => func(*args)
+
+    """
+
+    subsed_expr = expr.subs()
+    if not subsed_expr.free_symbols == set(args):
+        diff = subsed_expr.free_symbols.diff(args)
+        raise AttributeError('missing replacement for symbol {}'.format(diff))
+    func = sy.lambdify(args, expr, modules='numpy')
+    return np.vectorize(func)
+
+
 def vstack(M):
     """
     Stack elements of array M with shape (nx, nc, m) into array MM with shape
@@ -65,7 +96,7 @@ def concatenate_in_given_axis(l, axis=0):
     Return
     ------
     a : numpy array
-        Concatenation of the arrays in the list :code:`l`. Number of dimensions
+        Concatenation of the arrays in the list `l`. Number of dimensions
         is D+1, with shape along last axis equal to the lenght of list l.
     """
     def expand(a):
@@ -78,28 +109,51 @@ def concatenate_in_given_axis(l, axis=0):
 
 def norm(a):
     """
-Norm of the numpy array over the last dimension
 
-Parameter
-----------
-a : numpy array with shape (Nx, Nc)
+    Norm of the numpy array `a`over its last axis.
 
-Return
-------
-n : numpy array with shape (Nx,)
-    Norm of the numpy array over the last dimension `n[i]=sqrt(sum_j a[i,j]^2)`
+    Input
+    -----
+    a : numpy array with shape (Nx, Nc)
+
+    Return
+    ------
+    n : numpy array with shape (Nx,)
+        Norm of the numpy array over the last dimension
+        `n[i]=sqrt(sum_j a[i,j]^2)`
+
     """
     if len(a.shape) == 1:
         a = a[np.newaxis, :]
     return np.sqrt(np.einsum('ij,ij->i', a, a))
 
 
-def iterarray(a, axis=0):
+def iterarray(a, ind=0):
+    """
+
+    Build a generator over the `i`-th axis of the array `a`.
+
+    Inputs
+    ------
+
+    `a` : N-dimensional numpy array
+
+    `i` : index in [0 -- N-1] of the axis of `a` for iteration
+
+    Return
+    ------
+
+    gen : a generator of arrays associated with an iterator over the `i`-th
+    axis of `a` with element j given by the (N-1)-dimensional numpy array:
+
+    b[..., x_{i-1}, x_{i+1}, ...] = a[..., x_{i-1}, j, x_{i+1}, ...]
+
+    """
     naxis = len(a.shape)
     s = [slice(None), ]*naxis
     def slice_i(i):
         slicer = s
-        slicer[axis] = i
+        slicer[ind] = i
         return slicer
-    for i in range(a.shape[axis]):
+    for i in range(a.shape[ind]):
         yield a[slice_i(i)]

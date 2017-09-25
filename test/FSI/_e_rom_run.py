@@ -9,8 +9,6 @@ Created on Tue Aug 22 14:22:11 2017
 import os
 import numpy as np
 
-import matplotlib.pyplot as plt
-
 from lasie_rom.io import hdf, vtk
 from lasie_rom.classes import TimeSerie
 
@@ -18,19 +16,28 @@ from main import parameters
 from options import options, eps_u, eps_lambda, TMIN
 from locations import paths
 
+from lasie_rom.misc.tools import sympyExpr2numpyFunc
+
 from lasie_rom import parallelization, rom
 
-def myplot(i):
-    plt.close('all')
-    plt.plot(rom_ns.c_rom(i), '-o', label='rom')
-    plt.plot(rom_ns.c_fom(i)[:len(rom_ns.c_rom(i))], '--o', label='fom')
-    plt.legend(loc=0)
-    plt.title(str(i))
-    plt.show()
+from ellipse.ellipse_levelset import build_Levelset_Sympy_Expression
+
+def build_levelset_func(ell_center, ell_radius, rot_center):
+    levelset = build_Levelset_Sympy_Expression(ell_center,
+                                               ell_radius,
+                                               rot_center)
+    x = sy.symbols('x:2', real=True)
+    theta_symb = sy.symbols('theta', real=True, positive=True)
+    t_symb = sy.symbols('t', real=True, positive=True)
+
+    subs = {theta_symb: parameters['theta_init'] + (TMIN+t)*parameters['angular_vel']}
+    return sympyExpr2numpyFunc(levelset, [t_symb, ] + list(x), subs)
+
+levelset_func = build_levelset_func(ell_center, ell_radius, rot_center)
 
 # --------------------------------------------------------------------------- #
 # Instanciate Reduced order model for Navier Stokes
-rom_paths = {'basis': paths['basis'][0],
+hdf_paths = {'basis': paths['basis'][0],
              'matrices': paths['matrices'],
              'original_coeffs': paths['coeffs'],
              'meanfluc':  paths['meanfluc'][0],
@@ -40,7 +47,9 @@ rom_paths = {'basis': paths['basis'][0],
 parameters.update({'eps_u': eps_u,
                    'eps_lambda': eps_lambda})
 
-rom_ns = rom.navierstokes_rotation.ReducedOrderModel(rom_paths, parameters)
+rom_ns = rom.fsi_relaxed_rigidity.ReducedOrderModel(hdf_paths,
+                                                    parameters,
+                                                    levelset_func)
 
 # instanciate original TimeSerie
 ts = TimeSerie(paths['ihdf'][0])
@@ -113,3 +122,17 @@ plt.plot(rom_ns.c_fom(0), label='fom')
 plt.legend()
 
 rom_ns.close_hdfs()
+
+def myplot(i):
+    import matplotlib.pyplot as plt
+    plt.close('all')
+    plt.plot(rom_ns.c_rom(i), '-o', label='rom')
+    plt.plot(rom_ns.c_fom(i)[:len(rom_ns.c_rom(i))], '--o', label='fom')
+    plt.legend(loc=0)
+    plt.title(str(i))
+    plt.show()
+
+myplot(0)
+myplot(1)
+myplot(2)
+myplot(3)

@@ -6,7 +6,7 @@ Created on Mon Aug 21 12:08:44 2017
 @author: afalaize
 """
 
-from fenics_simulation import build_parameters, build_resultsFolderName
+from FenicsAgitateurt2D import build_parameters, build_resultsFolderName
 
 lambda1 = 0.375/1.  # Ellipse principal radius/box side length (d.u.)
 lambda2 = .2    # Ellipse shape parameter (d.u.)

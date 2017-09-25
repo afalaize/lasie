@@ -16,19 +16,14 @@ The boundary conditions are chosen ase constant homogen Neumann condition
 """
 
 from __future__ import print_function
-import dolfin as dlf
 import numpy as np
 import os
 
-from .ellipse_fnchar import (build_fnchar_Expression,
-                             build_velocity_Expression,
-                             build_Levelset_Expression)
-
-import matplotlib.pyplot as plt
-
+from ellipse.ellipse_fnchar import build_fnchar_Dolfin_Expression
+from ellipse.ellipse_levelset import build_Levelset_Dolfin_Expression
+from ellipse.ellipse_tools import build_velocity_Expression
 
 # turn off interactive ploting to save figures without rendering them
-plt.ioff()
 
 # --------------------------------------------------------------------------- #
 # Parameters
@@ -81,6 +76,10 @@ def build_resultsFolderName(parameters):
 
 
 def fenicsSimulation(lambda1, lambda2, lambda3, lambda4, eps_tanh):
+
+    import dolfin as dlf
+    import matplotlib.pyplot as plt
+    plt.ioff()
 
     parameters = build_parameters(lambda1, lambda2, lambda3, lambda4, eps_tanh)
     resultsFolderName = build_resultsFolderName(parameters)
@@ -151,7 +150,7 @@ def fenicsSimulation(lambda1, lambda2, lambda3, lambda4, eps_tanh):
 
     # ----------------------------------------------------------------------- #
     # Def fonction Characteristique
-    fnchar_expr = build_fnchar_Expression(parameters['ell_center'],
+    fnchar_expr = build_fnchar_Dolfin_Expression(parameters['ell_center'],
                                           parameters['ell_radius'],
                                           parameters['rot_center'],
                                           parameters['eps_tanh'])
@@ -161,9 +160,9 @@ def fenicsSimulation(lambda1, lambda2, lambda3, lambda4, eps_tanh):
                                               parameters['angular_vel'])
 
     # Def levelset
-    levelset_expr = build_Levelset_Expression(parameters['ell_center'],
-                                              parameters['ell_radius'],
-                                              parameters['rot_center'])
+    levelset_expr = build_Levelset_Dolfin_Expression(parameters['ell_center'],
+                                                     parameters['ell_radius'],
+                                                     parameters['rot_center'])
 
     # ----------------------------------------------------------------------- #
     # Trials and tests functions

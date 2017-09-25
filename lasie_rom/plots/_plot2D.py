@@ -7,7 +7,6 @@ Created on Tue Apr 11 12:25:57 2017
 
 from __future__ import absolute_import
 
-import matplotlib.pyplot as plt
 import numpy as np
 from ..misc.tools import norm
 
@@ -38,18 +37,18 @@ OPTIONS = {'ncols': NCOLS,
 def plot2d(a, shape, title=None, render='magnitude', savename=None, options=None):
     """
 Plot of 2D data array.
-    
+
 Parameters
 ----------
 
 a: array_like with shape (nx, nc, nm)
-    array to plot where nx is the number of spatial discretization points, nc 
-    is the number of spatial components, and nm is the number of elements to 
+    array to plot where nx is the number of spatial discretization points, nc
+    is the number of spatial components, and nm is the number of elements to
     plot.
-    
+
 shape: list of int
     Original grid shape (i.e. as returned by lasie_rom.grids.generate).
-    
+
 title: string (optional)
 
 savename: string (optional)
@@ -69,7 +68,8 @@ options: dictionary (optional)
                'cbar': 'global',
                }
     """
-    
+
+    import matplotlib.pyplot as plt
 
     opts = OPTIONS
     if options is None:
@@ -99,7 +99,7 @@ options: dictionary (optional)
         minmax = min([minmax[0], min(v)]), max([minmax[1], max(v)])
         all_v.append(v)
     for ind, v in enumerate(all_v):
-        v_g = v.reshape(map(int, shape[1:]))
+        v_g = v.reshape(list(map(int, shape[1:])))
         plt.subplot(nrows, ncols, ind+1)
         plt.title('${}$'.format(ind))
         im = plt.imshow(v_g.T, cmap=opts['cmap'],

@@ -104,7 +104,7 @@ if __name__ == '__main__':
                  title='Reconstructed Level-Set',
                  savename=os.path.join(MAIN_FOLDER, 'levelset_reconstructed'), render=0)
 
-    plots.plot2d(heaviside_eps_vectorized(data_levelset[:, :, ::55]), shape,
+    plots.plot2d(smooth.heaviside(data_levelset[:, :, ::55], parameters['eps_tanh']), shape,
                  title='Reconstructed Level-Set + Heaviside',
                  savename=os.path.join(MAIN_FOLDER, 'levelset_reconstructed_heaviside'), render=0)
 
@@ -118,6 +118,6 @@ if __name__ == '__main__':
 
     plots.plot1d([np.array(list_gamma)[:,:10], np.array(list_gamma_deim)[:,:10]],
                  title='Gamma',
-                 savename=os.path.join(MAIN_FOLDER, 'gamma.png'))
+                 savename=os.path.join(MAIN_FOLDER, 'gamma'))
 
     plt.show()

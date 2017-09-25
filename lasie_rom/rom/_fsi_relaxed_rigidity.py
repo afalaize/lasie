@@ -14,15 +14,29 @@ from scipy.optimize import root
 import progressbar
 
 
-from fenics_simulation.ellipse_fnchar import build_lambdified_levelset
-
-
 class ReducedOrderModel(object):
     """
     """
 
-    def __init__(self, paths, parameters):
+    def __init__(self, hdfpaths, parameters, levelset_func):
         """
+        hdfpaths: dictionary
+            {'name': 'path/to/hdf/file.hdf', ...}
+            with name in :
+            'grid',
+            'basis',
+            'matrices',
+            'meanfluc'.
+            'original_coeffs',
+
+        parameters: dictionary
+            Simulation, POD-ROM and runtime parameters.
+        
+        levelset_func: function(t, x1, ..., xD) s.t.
+        - levelset_func(t, x)>0 for x in the t-dependent solid domain,
+        - levelset_func(t, x)<0 for x in the t-dependent fluid domain,
+        - levelset_func(t, x)=0 for x in the t-dependent fluid/solid interface.
+        levelset_func must accept numpy.array arguments (see numpy.vectorize).
         """
         self.parameters = parameters
 
@@ -39,7 +53,7 @@ class ReducedOrderModel(object):
         levelset_func = build_lambdified_levelset(parameters['ell_center'],
                                                   parameters['ell_radius'],
                                                   parameters['rot_center'])
-        self.levelset = np.vectorize(levelset_func)
+        self.levelset = levelset_func
 
     def open_hdfs(self):
         for k in self.paths:

@@ -145,6 +145,7 @@ This is equivalent to the following strong formulation in the solid domain:
 \begin{array}{ll}
 \rhos\,\left(\dt{\vu} + \grad \vu\cdot \vu \right)= \div \vsigmas + \underbrace{\vf_\labs}_{\triangleq 0} & \forall \vx \in \doms(t),\\
 \div \vu = 0 & \forall \vx \in \doms(t), \\
+\vu(\vx, t) = \vus(\vx, t) & \forall \vx \in \doms(t), \\
 \D{\vu} = 0 & \forall \vx \in \doms(t), \\
 \vu(\vx,t)=\vui(\vx,t) & \forall \vx \in \boui(t) \\
 \vu(\vx, \,0) = \vu_{\mathrm{0}}(\vx) & \forall \vx \in \doms(t), \\
@@ -248,6 +249,191 @@ $$
 \int_{\dom}\rho\left(\dt \vu + \grad \vu \cdot \vu\right)\cdot\vv \,\d\vx + \int_{\dom}2\,\nu\,\trace{\D{\vu}\cdot\D{\vv}} \, \d\vx\\
 \nonumber & & - \int_{\dom} p\,\div \vv \,\d\vx + \int_{\doms(t)}\trace{\D\vlambda \cdot \D \vv }\, \d \vx \\
 \label{eq:solid_weak} & & + \int_{\dom} q\,\div \vu \,\d\vx + \int_{\doms(t)}\trace{\D\vmu \cdot\D \vu}\,\d \vx
+\end{eqnarray}
+%
+
+Notice the terms associated to the mutual stress on the fluid/solid interface $\boui$ cancel together.
+%
+
+\section{Weak formulation on the POD basis}
+%%
+We consider the POD basis $(\vphi_i(\vx))_{1 \leq i \leq N_\Phi}$ with $\vu(\vx, t)\simeq \bu(\vx) + \sum_{i=1}^{N_\Phi}\vphi_i(\vx)\,\alpha_i(t)$
+\begin{eqnarray}
+\nonumber 0 &=& 
+\int_{\dom}\rho\left(\dt \vu + \grad \vu \cdot \vu\right)\cdot\vphi_i \,\d\vx + \int_{\dom}2\,\nu\,\trace{\D{\vu}\cdot\D{\vphi_i}} \, \d\vx\\
+\nonumber & & - \int_{\dom} p\,\div \vphi_i \,\d\vx + \int_{\doms(t)}\trace{\D\vlambda \cdot \D \vphi_i }\, \d \vx \\
+\label{eq:solid_weak} & & + \int_{\dom} q\,\div \vu \,\d\vx + \int_{\doms(t)}\trace{\D\vmu \cdot\D \vu}\,\d \vx
+\end{eqnarray}
+
+
+
+\section{ROM}
+\begin{eqnarray}
+\rho(\vx, t) &=& \rhos\,\ind{\doms(t)}(\vx)+\rhof\,\Big( 1-\ind{\doms(t)}(\vx) \Big) \\
+\nu(\vx, t) &=& \nus\,\ind{\doms(t)}(\vx)+\nuf\,\Big( 1-\ind{\doms(t)}(\vx) \Big) \\
+a_{i,j}(\vx) &=& \vphi_j(\vx)\cdot\vphi_i(\vx) \\
+b_{i,j}^\rho(\vx) &=& \left(\grad \vphi_j(\vx)\cdot\bu(\vx) + \grad \bu(\vx) \cdot\vphi_j(\vx) \right) \cdot\vphi_i(\vx)  \\ 
+b_{i,j}^\nu(\vx) &=& 2\,\trace{\D{\vphi_j(\vx)}\cdot\D{\vphi_i(\vx)}} \\
+c_{i,j,k}(\vx) &=& \Big(\grad \vphi_j(\vx)\cdot\vphi_k(\vx)\Big)\cdot\vphi_i(\vx)\\
+f^\rho_{i}(\vx) &=& \Big(\grad \bu(\vx)\cdot\bu(\vx)\Big)\cdot\vphi_i(\vx)\\
+f^\nu_{i}(\vx)&= &  2\,\trace{\D{\bu(\vx)}\cdot\D{\vphi_i(\vx)}} \\
+f^\lambda_{i}(\vx)&= & \trace{\D{\vlambda(\vx)}\cdot\D{\vphi_i(\vx)}}
+\end{eqnarray}
+
+\begin{eqnarray}
+A_{i,j}(t) &=& \int_{\dom}\rho( \vx, t)\,a_{i,j}(\vx)\,\d\vx \\
+B_{i,j}(t) &=& \int_{\dom}\rho( \vx, t)\,b_{i,j}^\rho(\vx) \,\d\vx +\int_{\dom} \nu( \vx, t)\,b_{i,j}^\nu(\vx) \,\d\vx \\
+C_{i,j,k}(t) &=& \int_{\dom}\rho( \vx, t)\,c_{i,j,k}(\vx)\,\d\vx \\
+F_{i}(t) &=& \int_{\dom}\rho( \vx, t)\,f^\rho_{i}(\vx)\,\d\vx + \int_{\dom} \nu( \vx, t)\,f^\nu_{i}(\vx) \,\d\vx + \int_{\doms(t)} \ind{\doms(t)}(\vx)\,f^\lambda_{i}(\vx) \,\d\vx
+\end{eqnarray}
+
+
+\paragraph{Implémentation}
+\begin{eqnarray}
+\rho_x(\theta) &=& \rhof + (\rhof-\rhos)\,\he\big(\chi_x(\theta)\big) \\
+\nu_x(\theta) &=& \nuf + (\nuf-\nus)\,\he\big(\chi_x(\theta)\big) \\
+a_{x,i,j} &=& \sum_{c=1}^{D}\vphi_{x,c,j}\,\vphi_{x,c,i} \\
+b_{x,i,j}^\rho &=& \sum_{c=1}^{D}\sum_{d=1}^{D} \Big( \grad \vphi_{x, c, d, j}\,\bu_{x, d} + \grad \bu_{x, c, d} \,\vphi_{x, d, j} \Big)\,\vphi_{x, c, i}\\ 
+b_{x,i,j}^\nu &=& \frac{1}{2}\,\sum_{c=1}^D{\sum_{d=1}^D \left( \grad\vphi_{x, c,d, j} + \grad\vphi_{x, d, c, j} \right)\, \left( \grad\vphi_{x, d,c, i} + \grad\vphi_{x, c, d, i} \right)} \\
+c_{x,i,j,k}&=& \sum_{c=1}^D \Big(\sum_{d=1}^D \grad\vphi_{x, c,d,j}\,\vphi_{x,d,k}\Big)\, \vphi_{x,c,i}\\
+f^\rho_{x, i}&=& \sum_{c=1}^D\sum_{d=1}^D\Big(\grad \bu_{x, c,d}\,\bu_{x, d}\Big)\,\vphi_{x, c, i}\\
+f^\nu_{x, i} &=& \frac{1}{2}\,\sum_{c=1}^D{\sum_{d=1}^D \left( \grad\bu_{x, c,d} + \grad\bu_{x, d, c} \right)\, \left( \grad\vphi_{x, d,c, i} + \grad\vphi_{x, c, d, i} \right)} \\
+f^\lambda_{x,i}&= & \frac{1}{4}\,\sum_{c=1}^D{\sum_{d=1}^D \left( \grad\vlambda_{x, c,d} + \grad\vlambda_{x, d, c} \right)\, \left( \grad\vphi_{x, d,c, i} + \grad\vphi_{x, c, d, i} \right)}
+\end{eqnarray}
+
+$\D{\vphi_{x, c,j}} \triangleq \frac{1}{2} \left( \grad\vphi_{x, c,d, j} + \grad\vphi_{x, d, c, j} \right)$
+
+\begin{equation}
+\sum_{j=1}^{N_\Phi} A_{i,j}\,\partialt{\alpha_j}+\sum_{j=1}^{N_\Phi} B_{i,j}\,{\alpha_j}+\sum_{j=1}^{N_\Phi}\sum_{k=1}^{N_\Phi}  C_{i,j,k}\,\alpha_j\,\alpha_k + F_{i} = 0
+\end{equation}
+
+
+\section{Algorithme}
+\begin{algorithm}[H]
+ \KwData{$\vec \alpha (t_{n})$, $\theta(t_{n+1})$}
+ \KwResult{$\vec \alpha (t_{n+1})$}
+$\ind{\doms}(x)= \he\Big(\chi_x\big(\theta(t_{n})\big)\Big)$\;
+$\rho_x = \rhof + (\rhos-\rhof)\,\ind{\doms}(x)$ \;
+$\nu_x = \nuf + (\nus-\nuf)\,\ind{\doms}(x)$ \;
+$A_{i,j} = \sum_{x=1}^{N_{\vx}}\rho_x\,a_{x, i,j}$ \;
+$B_{i,j} = \sum_{x=1}^{N_{\vx}}\left(\rho_x\,b_{x,i,j}+\nu_x\,\,b_{x, i,j}\right)$ \;
+$C_{i,j,k} = \sum_{x=1}^{N_{\vx}}\rho_x\,\,c_{x, i,j,k}$ \;
+$f^\rho_{i} \leftarrow \sum_{x=1}^{N_{\vx}}\rho_x\,\,f^\rho_{x, i}$\;
+$f^\nu_{i} \leftarrow \sum_{x=1}^{N_{\vx}}\nu_x\,\,f^\nu_{x, i}$\;
+\;
+$\ell\leftarrow 0$\;
+$\vec\alpha ^{\ell} \leftarrow \vec \alpha (t_{n})$\;
+$\vu^{\ell}_{x, c} = \bu_{x, c}+\sum_{j=1}^{N_\Phi}\vphi_{xcj}\,\alpha_j^{\ell} $\;
+$\vlambda^{\ell} \leftarrow \vec 0$\; 
+ \While{$\parallel\vu^{\ell}-\vu^{\ell-1}\parallel > \epsilon_{\vu}$ and $\parallel \ind{\doms}\D{\vu^{\ell}}\parallel > \epsilon_{\vlambda}$}{
+$\ell \leftarrow \ell +1$\;
+$f^{\lambda,\ell}_{x,i} \leftarrow \frac{1}{4}\,\sum_{c=1}^D{\sum_{d=1}^D \left( \grad\vlambda_{x, c,d}^{\ell-1} + \grad\vlambda^{\ell-1}_{x, d, c} \right)\, \left( \grad\vphi_{x, d,c, i} + \grad\vphi_{x, c, d, i} \right)}
+$\;
+$F_{i}^\ell = f^\rho_{i}  + f^\nu_{i}  +\sum_{x=1}^{N_{\vx}}\ind{\doms}(x)\,f^{\lambda,\ell}_{x,i}$ \;
+Solve $\sum_{j=1}^{N_\Phi}\Big(\left(\frac{A_{i,j}}{\Delta t}+B_{i,j}+\sum_{k=1}^{N_\Phi}  C_{i,j,k}\,\alpha_k^{\ell-1}\right)\, \alpha_j^{\ell} -\frac{A_{i,j}}{\Delta t}\,\alpha_j(t_{n}) \Big)+ F_{i}^\ell= 0$\;
+$\vu^{\ell}_{x, c} = \bu_{x, c}+\sum_{j=1}^{N_\Phi}\vphi_{xcj}\,\alpha_j^{\ell} $\;
+$\vlambda^{\ell}_{x, c} \leftarrow \vlambda^{\ell-1}_{x, c}- \nu_x \, \vu^{\ell}_{x, c}$\; 
+}
+$\alpha_i(t_{n+1}) \leftarrow \alpha_i^{\ell}$\;
+ \caption{Resolution with Newton-Uzawa.}
+\end{algorithm}
+
+\section{relaxed velocity}
+
+\begin{equation}
+\left\{
+\begin{array}{ll}
+\rhos\,\left(\dt{\vu} + \grad \vu\cdot \vu \right)= \div \vsigmas + {\vf_\labo}& \forall \vx \in \doms(t),\\
+\div \vu = 0 & \forall \vx \in \doms(t), \\
+\vu(\vx, t) = \vuo(\vx, t) & \forall \vx \in \doms(t), \\
+\D{\vu} = 0 & \forall \vx \in \doms(t), \\
+\vu(\vx,t)=\vui(\vx,t) & \forall \vx \in \boui(t) \\
+\vu(\vx, \,0) = \vu_{\mathrm{0}}(\vx) & \forall \vx \in \doms(t), \\
+\vsigmas\cdot \vn_{\labi} = \vsigmaf\cdot \vn_{\labi} & \forall \vx \in \boui(t).
+\end{array}
+\right.
+\end{equation}
+where $\vf_\labo$ is volumic force imposed so that $\vu(\vx, t) = \vuo(\vx, t)$ in $\doms(t)$. This is included in a weak form by introducing a penalty coefficient $\eta$
+\\
+
+The following is based on the presentation in \cite[\textsection{2}]{patankar2000new}. 
+%
+They define
+\begin{itemize}
+\item a velocity solution space: 
+$$\sVf = \left\{\vu \in \sH\big(\domf(t), \sT\big);\;\vu(\vx, t) = \vud(\vx, t)\; \forall \vx \in \boud \right\}$$
+\item a velocity test space 
+$$\sV_0 = \left\{\vu \in \sH\big(\domf(t), \sT\big);\;\vu(\vx, t) = \vec 0 \; \forall \vx \in \boud \right\}$$
+\item a pressure solution space
+$$\sP_0(\dom) = \left\{p \in \sL^2\big(\dom, \sT\big);\; \int_{\dom}p(\vx, t) \,\d\vx = 0 \right\}$$
+\end{itemize}
+
+Then they write the weak formulation for the fluid phase:\\
+$\forall \vu \in \sVf$, $\forall \vv \in \sV_0$ and $\forall q \in \sL^2\big(\dom, \sT\big)$
+%
+\begin{eqnarray}
+\nonumber 0 &=& \int_{\domf(t)}\rhof\left(\dt \vuf + \grad \vuf \cdot \vuf\right)\cdot\vv \,\d\vx + \int_{\domf(t)}\vsigmaf:\D{\vv} \, \d\vx+\int_{\boui(t)} (\vsigmaf\cdot\vec n) \cdot\vv \,\d\vx  \\
+\label{eq:fluid_weak} &&  + \int_{\domf(t)} q\,\div \vuf \,\d\vx 
+\end{eqnarray}
+with $\vsigmaf = -p\,\Id + 2\,\nuf\,\D{\vuf} $, that is
+$$ \int_{\domf(t)}\vsigmaf:\D{\vv} \, \d\vx = -\int_{\domf(t)}p\, \div\vv \, \d\vx + \int_{\domf(t)}2\,\nuf\,\trace{\D{\vuf}\cdot\D{\vv}} \, \d\vx. $$
+%
+Now they define
+\begin{itemize}
+\item a velocity solution space: 
+$$\sVs = \left\{\vu \in \sH\big(\doms(t), \sT\big);\; \vu(\vx, t) = \vus(\vx, t) \; \forall \vx \in \doms(t) \right\}$$
+\end{itemize}
+
+The weak formulation for the solid phase is given by:\\
+$\forall \vu \in \sVs$, $\forall \vv \in \sVs$, $\forall p \in \sP_0\big(\domf(t)\big)$ and $\forall q \in \sL^2\big(\dom, \sT\big)$
+$$
+0 = 
+\int_{\doms(t)}\rhos\left(\dt \vu + \grad \vu \cdot \vu\right)\cdot\vv \,\d\vx 
+- \int_{\doms(t)} p\,\div \vv \,\d\vx
+- \int_{\boui(t)} (\vsigma\cdot\vec n) \cdot\vv \,\d\vx
++ \int_{\doms(t)} q\,\div \vu \,\d\vx
+$$
+The velocity constraint is enforced as in \cite{glowinski1999distributed}, that is, as the weak form of a side constraint which corresponds to the weak form of (\ref{eq:L_constraints}), given by \cite{patankar2000new}
+\begin{equation}
+\label{eq:L_weak}
+\int_{\doms(t)} \vmu \cdot (\vu-\vuo)\,\d \vx = 0, \quad \forall\vmu \in \sH\big(\doms(t),\sT\big),
+\end{equation}
+where $\vu \in \sH\big(\doms(t),\sT\big)$. The use of (\ref{eq:L_weak}) yields the introduction of an appropriate distributed Lagrange multiplier $\vlambda$. The modified weak formulation for the solid is then: \\
+$
+\begin{array}{ll}
+\forall \vu \in \sVs, & \forall \vv \in \sVs, \\
+\forall p \in \sP_0\big(\doms(t)\big) &,  \forall q \in \sL^2\big(\doms(t), \sT\big), \\
+\forall \vlambda \in \sH\big(\doms(t),\sT\big)&,  \forall \vmu \in \sH\big(\doms(t),\sT\big), \\
+\end{array}
+$
+\begin{eqnarray}
+\nonumber 0 &=& 
+\int_{\doms(t)}\rhos\left(\dt \vus + \grad \vus \cdot \vus\right)\cdot\vv \,\d\vx 
+- \int_{\boui(t)} (\vsigmas\cdot\vec n) \cdot\vv \,\d\vx \\
+\nonumber & & - \int_{\doms(t)} p\,\div \vv \,\d\vx + \int_{\doms(t)} \vlambda \cdot (\vv-\vuo) \, \d \vx \\
+\label{eq:solid_weak} & & + \int_{\doms(t)} q\,\div \vus \,\d\vx + \int_{\doms(t)}\vmu \cdot (\vus-\vuo)\,\d \vx
+\end{eqnarray}
+
+The formulation on the complete domain is obtained by summing (\ref{eq:fluid_weak}) and (\ref{eq:solid_weak}). First, they define
+\begin{itemize}
+\item a global velocity solution space: 
+$$\sW = \left\{\vu \in \sH\big(\dom, \sT\big);\;\vu(\vx, t) = \vud(\vx, t)\; \forall \vx \in \boud \right\}$$
+$$\sW = \left\{\vu \in \sH\big(\dom, \sT\big);\;\div \vu(\vx, t)=0\; \forall \vx \in \dom,\,\D{\vu(\vx, t)}=0\; \forall \vx \in \doms(t),\,\vu(\vx, t) = \vud(\vx, t)\; \forall \vx \in \boud \right\}?$$
+\item a global velocity test space 
+$$\sW_0 = \left\{\vu \in \sH\big(\dom, \sT\big);\;\vu(\vx, t) = \vec 0 \; \forall \vx \in \boud \right\}$$
+\end{itemize}
+$$
+\begin{array}{ll}
+\forall \vu \in \sW, & \forall \vv \in \sW_0, \\
+\forall p \in \sP_0\big(\dom\big) &,  \forall q \in \sL^2\big(\dom, \sT\big), \\
+\forall \vlambda \in \sH\big(\doms(t),\sT\big)&,  \forall \vmu \in \sH\big(\doms(t),\sT\big), \\
+\end{array}
+$$
+\begin{eqnarray}
+\nonumber 0 &=& 
+\int_{\dom}\rho\left(\dt \vu + \grad \vu \cdot \vu\right)\cdot\vv \,\d\vx + \int_{\dom}2\,\nu\,\trace{\D{\vu}\cdot\D{\vv}} \, \d\vx\\
+\nonumber & & - \int_{\dom} p\,\div \vv \,\d\vx + \int_{\doms(t)} \vlambda \cdot (\vv-\vuo) \, \d \vx \\
+\label{eq:solid_weak} & & + \int_{\dom} q\,\div \vu \,\d\vx + \int_{\doms(t)}\vmu \cdot (\vu-\vuo)\,\d \vx
 \end{eqnarray}
 %
 
