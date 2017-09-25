@@ -16,7 +16,7 @@ def vstack(M):
     """
     nx, nc, m = M.shape
     return M.reshape((nx*nc, m), order=ORDER)
-    
+
 
 def unvstack(M, nc):
     """
@@ -25,40 +25,43 @@ def unvstack(M, nc):
     """
     n, m = M.shape
     assert n // nc == 0
-    
+
     nx = n // nc
     new_shape = (nx, m, nc)
     return M.reshape(new_shape, order=ORDER)
-    
+
 
 def concatenate_in_first_axis(l):
     """
-    
+
     Parameter
     ----------
     l : list of N numpy arrays
         Each element of the list must be a D dimensionnal array, and dimensions
         of every arrays must coincide.
-    
+
     Return
     ------
     a : numpy array
         Concatenation of the arrays in the list :code:`l`. Number of dimensions
         is D+1, with shape along last axis equal to the lenght of list l.
-        
+
     """
     def expand(a):
         return np.expand_dims(a, 0)
-    return np.concatenate(map(expand, l), axis=0)
+    try:
+        return np.concatenate(map(expand, l), axis=0)
+    except TypeError:
+        return np.concatenate(list(map(expand, l)), axis=0)
 
-    
+
 def concatenate_in_given_axis(l, axis=0):
-    """    
+    """
     Parameter
     ----------
     l : list of N numpy arrays
         Each element of the list must be a D dimensionnal array, and dimensions
-        of every arrays must coincide.    
+        of every arrays must coincide.
     Return
     ------
     a : numpy array
@@ -67,9 +70,12 @@ def concatenate_in_given_axis(l, axis=0):
     """
     def expand(a):
         return np.expand_dims(a, axis)
-    return np.concatenate(map(expand, l), axis=axis)
+    try:
+        return np.concatenate(map(expand, l), axis=axis)
+    except TypeError:
+        return np.concatenate(list(map(expand, l)), axis=axis)
 
-    
+
 def norm(a):
     """
 Norm of the numpy array over the last dimension
@@ -80,7 +86,7 @@ a : numpy array with shape (Nx, Nc)
 
 Return
 ------
-n : numpy array with shape (Nx, Nc)
+n : numpy array with shape (Nx,)
     Norm of the numpy array over the last dimension `n[i]=sqrt(sum_j a[i,j]^2)`
     """
     if len(a.shape) == 1:
@@ -97,6 +103,3 @@ def iterarray(a, axis=0):
         return slicer
     for i in range(a.shape[axis]):
         yield a[slice_i(i)]
-        
-    
-    

@@ -70,10 +70,11 @@ func: generator function
         """
         def generate_data():
             for i, d in enumerate(self.data):
-                assert hasattr(d, 'names'), 'hdf files are not opened; use TimeSerie.openAllFiles()'
+                d.openHdfFile()
                 yield getattr(d, name)[:]
+                d.closeHdfFile()
         return generate_data
-                
+
     def concatenate(self, name):
         """
     Returns a single array with shape (nx, nc, ..., nt) with nx the number of
@@ -81,6 +82,8 @@ func: generator function
     for the data atttribute that corresponds to name (the '...' means that
     each array in the time serie can be N-dimensional with N>2).
         """
+        self.data[0].openHdfFile()
         shape = getattr(self.data[0], name)[:].shape
+        self.data[0].closeHdfFile()
         generator = self.generator(name)
         return concatenate_in_given_axis(generator(), axis=len(shape))
