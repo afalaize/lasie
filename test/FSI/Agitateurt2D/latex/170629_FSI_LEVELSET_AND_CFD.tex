@@ -446,8 +446,8 @@ We consider the POD basis $(\vphi_i(\vx))_{1 \leq i \leq N_\Phi}$ with $\vu(\vx,
 \begin{eqnarray}
 \nonumber 0 &=& 
 \int_{\dom}\rho\left(\dt \vu + \grad \vu \cdot \vu\right)\cdot\vphi_i \,\d\vx + \int_{\dom}2\,\nu\,\trace{\D{\vu}\cdot\D{\vphi_i}} \, \d\vx\\
-\nonumber & & - \int_{\dom} p\,\div \vphi_i \,\d\vx + \int_{\doms(t)}\trace{\D\vlambda \cdot \D \vphi_i }\, \d \vx \\
-\label{eq:solid_weak} & & + \int_{\dom} q\,\div \vu \,\d\vx + \int_{\doms(t)}\trace{\D\vmu \cdot\D \vu}\,\d \vx
+\nonumber & & - \int_{\dom} p\,\div \vphi_i \,\d\vx + \int_{\doms(t)} \vlambda \cdot (\vphi_i-\vuo) \, \d \vx \\
+\label{eq:solid_weak} & & + \int_{\dom} q\,\div \vu \,\d\vx + \int_{\doms(t)}\vmu \cdot (\vu-\vuo)\,\d \vx
 \end{eqnarray}
 
 

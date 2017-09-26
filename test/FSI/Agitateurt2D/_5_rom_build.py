@@ -7,8 +7,9 @@ Created on Tue Aug 22 12:30:38 2017
 """
 
 from lasie_rom import io, rom, misc, parallelization
-from lasie_rom.rom import navierstokes_rotation
 from lasie_rom.classes import TimeSerie
+
+from lasie_rom.rom import fsi_relaxed_rigidity
 
 from main import parameters
 from locations import paths
@@ -22,24 +23,24 @@ velocity_basis_hdf = io.hdf.HDFReader(paths['basis'][0], openFile=True)
 velocity_meanfluc_hdf = io.hdf.HDFReader(paths['meanfluc'][0], openFile=True)
 
 print('Build temp_a')
-temp_a = navierstokes_rotation.temp_a(velocity_basis_hdf.basis[:])
+temp_a = fsi_relaxed_rigidity.temp_a(velocity_basis_hdf.basis[:])
 print('Build temp_b_rho')
-temp_b_rho = navierstokes_rotation.temp_b_rho(velocity_basis_hdf.basis[:],
+temp_b_rho = fsi_relaxed_rigidity.temp_b_rho(velocity_basis_hdf.basis[:],
                                               velocity_meanfluc_hdf.mean[:],
                                               velocity_basis_hdf.basis_grad[:],
                                               velocity_meanfluc_hdf.mean_grad[:])
 print('Build temp_b_nu')
-temp_b_nu = navierstokes_rotation.temp_b_nu(velocity_basis_hdf.basis_grad[:])
+temp_b_nu = fsi_relaxed_rigidity.temp_b_nu(velocity_basis_hdf.basis_grad[:])
 print('Build temp_c')
-temp_c = navierstokes_rotation.temp_c(velocity_basis_hdf.basis[:], velocity_basis_hdf.basis_grad[:])
+temp_c = fsi_relaxed_rigidity.temp_c(velocity_basis_hdf.basis[:], velocity_basis_hdf.basis_grad[:])
 print('Build temp_d')
-temp_d = navierstokes_rotation.temp_d(velocity_basis_hdf.basis_grad[:])
+temp_d = fsi_relaxed_rigidity.temp_d(velocity_basis_hdf.basis_grad[:])
 print('Build temp_f_rho')
-temp_f_rho = navierstokes_rotation.temp_f_rho(velocity_basis_hdf.basis[:],
+temp_f_rho = fsi_relaxed_rigidity.temp_f_rho(velocity_basis_hdf.basis[:],
                                               velocity_meanfluc_hdf.mean[:],
                                               velocity_meanfluc_hdf.mean_grad[:])
 print('Build temp_b_nu')
-temp_f_nu = navierstokes_rotation.temp_f_nu(velocity_basis_hdf.basis_grad[:],
+temp_f_nu = fsi_relaxed_rigidity.temp_f_nu(velocity_basis_hdf.basis_grad[:],
                                              velocity_meanfluc_hdf.mean_grad[:])
 
 data = {'a': temp_a,

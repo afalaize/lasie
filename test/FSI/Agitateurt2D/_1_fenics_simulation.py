@@ -23,69 +23,19 @@ from ellipse.ellipse_fnchar import build_fnchar_Dolfin_Expression
 from ellipse.ellipse_levelset import build_Levelset_Dolfin_Expression
 from ellipse.ellipse_tools import build_velocity_Expression
 
-# turn off interactive ploting to save figures without rendering them
+from _0_parameters import parameters
+from _0_locatios import VTU_FOLDER
 
-# --------------------------------------------------------------------------- #
-# Parameters
-
-def build_parameters(lambda1, lambda2, lambda3, lambda4, eps_tanh):
-    rot_center = np.array((0.5, 0.5))
-    ell_center = rot_center + np.array((lambda3*lambda1, 0))
-    parameters = {'rho': 1.,         # masse volumique du fluide
-                  'rho_delta': 0,   # rho_solide - rho_fluide
-                  'dt': 0.005,       # pas de temps
-                  'T': 30.,          # temps final
-                  'nb_export': 2,    # number of time-steps between each saving
-                  'nu': 1./lambda4,  # visco dynamique du fluide, nu = 1/Re
-                  'nu_delta': 0,    # nu_solide - nu_fluide
-                  'pen': 1e-9,       # Coefficient de penalisation volumique (~0)
-                  'rot_center': rot_center,  # Center of rotation of ellipse
-                  'ell_center': ell_center,  # Center of ellipse
-                  'ell_radius': (lambda1, lambda2*lambda1),  # Ellipse Radii
-                  'angular_vel': (2*(lambda1)**2)**-1,   # angular velocity (rad/s)
-                  'theta_init': 0.,  # initial ellipse angle w.r.t 1st axe
-                  'lambda': (lambda1, lambda2, lambda3, lambda4),  # parameters
-                  'h_mesh': 0.008,  # mesh size w.r.t 1m (d.u.)
-                  'eps_tanh': eps_tanh
-                  }
-    return parameters
-
-
-# N.B
-# Refernce velocity is v = r1*omega
-# Reference length is d = 2*r1
-# reference density is rho = 1
-# so that Re = v*d*rho/nu is equivalent to nu = 1/Re
-
-
-# --------------------------------------------------------------------------- #
-# Set results folder
-
-def build_resultsFolderName(parameters):
-    resultsFolderName = "results"
-    resultsFolderName += "_radius={0}".format(parameters['lambda'][0])
-    resultsFolderName += "_shape={0}".format(parameters['lambda'][1])
-    resultsFolderName += "_excentr={0}".format(parameters['lambda'][2])
-    resultsFolderName += "_Re={0}".format(parameters['lambda'][3])
-    resultsFolderName += "_eps_tanh={0}".format(parameters['eps_tanh'])
-    resultsFolderName += "_mesh={0}X{0}".format(int(parameters['h_mesh']**-1))
-    return resultsFolderName
-
-# --------------------------------------------------------------------------- #
-# Main function
-
-
-def fenicsSimulation(lambda1, lambda2, lambda3, lambda4, eps_tanh):
+def fenicsSimulation():
 
     import dolfin as dlf
     import matplotlib.pyplot as plt
+
+    # turn off interactive ploting to save figures without rendering them
     plt.ioff()
 
-    parameters = build_parameters(lambda1, lambda2, lambda3, lambda4, eps_tanh)
-    resultsFolderName = build_resultsFolderName(parameters)
-
-    if not os.path.exists(resultsFolderName):
-        os.mkdir(resultsFolderName)
+    if not os.path.exists(VTU_FOLDER):
+        os.mkdir(VTU_FOLDER)
 
     # ----------------------------------------------------------------------- #
     # Maillage
@@ -293,31 +243,10 @@ def fenicsSimulation(lambda1, lambda2, lambda3, lambda4, eps_tanh):
         print("Courant number =", courant, " t =", t)
 
     # ----------------------------------------------------------------------- #
-    # Save parameters
-    def save_parameters():
-        textFileName = "parameters.txt"
-        with open(os.path.join(resultsFolderName, textFileName),
-                  mode='w') as f:
-            f.write("{\n")
-            for k in parameters.keys():
-                f.write("{0}': {1},\n".format(k, parameters[k]))
-            f.write("{\n")
-
-    print(parameters)
-    save_parameters()
-
-    # ----------------------------------------------------------------------- #
 
     return parameters, resultsFolderName
 
 
 if __name__ == '__main__':
-    lambda1 = 0.375/1.  # Ellipse principal radius/box side length (d.u.)
-    lambda2 = .2        # Ellipse shape parameter (d.u.)
-    lambda3 = 0.        # Ellipse excentricity parameter (d.u.)
-    lambda4 = 100.      # Reynolds Number (d.u.)
 
-    parameters, resultsFolderName = fenicsSimulation(lambda1,
-                                                     lambda2,
-                                                     lambda3,
-                                                     lambda4)
+    fenicsSimulation()
