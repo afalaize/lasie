@@ -67,16 +67,17 @@ parameters.update({'dt': 0.005,       # Time step
 # Parameters for optimizaiton algorithms
 
 parameters.update({'pen': 1e-9,        # Coefficient de penalisation volumique (~0)
-              'eps_u': 1e-6,      # Test for convergence of the solution
-              'eps_lambda': 1e0,  # Tolerance on relaxed constraints
+              'eps_u': 1e-4,      # Test for convergence of the solution
+              'eps_lambda': 1e-1,  # Tolerance on relaxed constraints
+              'c_lambda': 1,  # Tolerance on relaxed constraints
               })
 # --------------------------------------------------------------------------- #
 # Fluid and solid materials parameters
 
 parameters.update({'rho': 1.,         # masse volumique du fluide
-              'rho_delta': 0,    # rho_solide - rho_fluide
+              'rho_delta': 1e0,    # rho_solide - rho_fluide
               'nu': 1./lambda4,  # visco dynamique du fluide, nu = 1/Re
-              'nu_delta': 0,     # nu_solide - nu_fluide
+              'nu_delta': 1e0,     # nu_solide - nu_fluide
               })
 
 # --------------------------------------------------------------------------- #

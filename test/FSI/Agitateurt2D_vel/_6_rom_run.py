@@ -21,6 +21,8 @@ from lasie_rom import parallelization, rom
 from lasie_rom.misc.tools import sympyExpr2numpyFunc
 from ellipse.ellipse_levelset import build_Levelset_Sympy_Expression
 
+from lasie_rom.misc import concatenate_in_given_axis
+
 def build_levelset_func(ell_center, ell_radius, rot_center):
     levelset = build_Levelset_Sympy_Expression(ell_center,
                                                ell_radius,
@@ -38,7 +40,37 @@ levelset_func = build_levelset_func(parameters['ell_center'],
                                     parameters['ell_radius'],
                                     parameters['rot_center'])
 
+# %%
+def build_velocity_func(angular_vel, center):
+    x = sy.symbols('x:2', real=True)
+    b = sy.symbols('b:2', real=True)
+    omega = sy.symbols('omega', real=True, positive=True)
+
+    theta = sy.atan2((x[1]-b[1]), (x[0]-b[0]))
+
+    x_vec = sy.Matrix(x)
+    b_vec = sy.Matrix(b)
+
+    dummy_vec = sy.Matrix([-sy.sin(theta), sy.cos(theta)])
+    velocity_vec = omega*sy.sqrt((x_vec-b_vec).dot(x_vec-b_vec))*dummy_vec
+
+    subs = dict([(bi, vali) for (bi, vali) in zip(b, center)])
+    subs.update({omega: angular_vel})
+
+    velocity_vec = list(velocity_vec.subs(subs))
+    args = list(x)
+
+    func_vec = [sympyExpr2numpyFunc(v, args, None) for v in velocity_vec]
+
+    def func(*fargs):
+        return np.vstack([f(*fargs) for f in func_vec]).T
+    return func
+velocity_func = build_velocity_func(parameters['angular_vel'],
+                                    parameters['rot_center'])
+
+#%%
 # --------------------------------------------------------------------------- #
+
 # Instanciate Reduced order model for Navier Stokes
 hdf_paths = {'basis': paths['basis'][0],
              'matrices': paths['matrices'],
@@ -47,9 +79,10 @@ hdf_paths = {'basis': paths['basis'][0],
              'grid': paths['grid']
              }
 
-rom_ns = rom.fsi_relaxed_rigidity.ReducedOrderModel(hdf_paths,
+rom_ns = rom.fsi_relaxed_velocity.ReducedOrderModel(hdf_paths,
                                                     parameters,
-                                                    levelset_func)
+                                                    levelset_func,
+                                                    velocity_func)
 
 # instanciate original TimeSerie
 ts = TimeSerie(paths['ihdf'][0])
@@ -68,11 +101,12 @@ else:
 # Form snapshot matrix
 U_fom = ts.concatenate(dataname)
 
+#%%
 # --------------------------------------------------------------------------- #
 # Run ROM
 
 # Simulation time steps run from 0 to TEND (s)
-T_rom = U_fom.shape[-1]*parameters['dt']*parameters['nb_export']
+T_rom = 150*parameters['rom']['dt']
 
 rom_ns.open_hdfs()
 angle = parameters['angular_vel']*parameters['load']['tmin'] % 2*np.pi
@@ -93,42 +127,56 @@ mesh = grid_hdf.mesh[:]
 grid_hdf.closeHdfFile()
 
 
+#%%
 # --------------------------------------------------------------------------- #
 # write vtu results
 if not os.path.exists(paths['output']):
     os.mkdir(paths['output'])
 
 
+ls = hdf.HDFReader(paths['meanfluc'][2], openFile=True)
+
 def write_vtu(i):
     "write vtu from a given index"
     print('write vtu #{}'.format(i))
+
     ufom = U_fom[:, :, i]
     urom = U_rom[:, :, i]
+    lsi = ls.mean[:] + ls.fluc[:, :, i]
     data = {'vitesse_rom': urom,
             'vitesse_fom': ufom,
+            'levelset': lsi,
             'error': urom-ufom}
     vtk.write(mesh, grid_shape, data,
               os.path.join(paths['output'], 'output{}.vtu'.format(i)))
 
-parallelization.map(write_vtu, range(U_fom.shape[-1]))
+    ufom = U_fom[:, :, i] - rom_ns.meanfluc.mean[:, :]
+    urom = U_rom[:, :, i] - rom_ns.meanfluc.mean[:, :]
+    data = {'vitesse_rom': urom,
+            'vitesse_fom': ufom,
+            'error': urom-ufom}
+    vtk.write(mesh, grid_shape, data,
+              os.path.join(paths['output'], 'output_fluc{}.vtu'.format(i)))
 
-plt.figure()
-plt.plot(rom_ns.c_rom(0), label='rom')
-plt.plot(rom_ns.c_fom(0), label='fom')
-plt.legend()
+parallelization.map(write_vtu, range(U_rom.shape[-1]-1))
 
-rom_ns.close_hdfs()
+ls.closeHdfFile()
 
+#%%
 def myplot(i):
     import matplotlib.pyplot as plt
     plt.close('all')
-    plt.plot(rom_ns.c_rom(i), '-o', label='rom')
-    plt.plot(rom_ns.c_fom(i)[:len(rom_ns.c_rom(i))], '--o', label='fom')
+    plt.plot(rom_ns.times, rom_ns.c_rom(i), '-o', label='rom')
+    plt.plot(rom_ns.times, rom_ns.c_fom(i)[:len(rom_ns.c_rom(i))], '--o', label='fom')
+    plt.xlabel('$time $t$ (s)')
+    plt.ylabel('$\\alpha_%i(t)$' % i)
     plt.legend(loc=0)
-    plt.title(str(i))
+    plt.title('Temporal coefficient $\\alpha_%i(t)$' % i)
+    plt.savefig(os.path.join(paths['results'], 'rom_coeffs_%i' % i))
     plt.show()
 
-myplot(0)
-myplot(1)
-myplot(2)
-myplot(3)
+for n in range(10):
+    myplot(n)
+
+#%%
+rom_ns.close_hdfs()

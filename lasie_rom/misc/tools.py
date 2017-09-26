@@ -7,10 +7,12 @@ Created on Mon Apr 24 19:16:35 2017
 """
 
 import numpy as np
-from ..config import ORDER
+import sympy as sy
+
+from ..config import ORDER, DTYPE
 
 
-def sympyExpr2numpyFunc(expr, args, subs):
+def sympyExpr2numpyFunc(expr, args, subs, vectorize=True):
     """
     Build a numerical evaluation of expr(args) after substitutions of subs.
 
@@ -32,12 +34,31 @@ def sympyExpr2numpyFunc(expr, args, subs):
 
     """
 
-    subsed_expr = expr.subs()
-    if not subsed_expr.free_symbols == set(args):
-        diff = subsed_expr.free_symbols.diff(args)
-        raise AttributeError('missing replacement for symbol {}'.format(diff))
-    func = sy.lambdify(args, expr, modules='numpy')
-    return np.vectorize(func)
+    if isinstance(expr, (list, tuple)):
+        f_list = []
+        for e in expr:
+            f_list.append(sympyExpr2numpyFunc(e, args, subs, vectorize=False))
+
+        def func(*fargs):
+            return np.array([f(*fargs) for f in f_list])
+    else:
+        if subs is None or subs == {}:
+            subsed_expr = expr
+        else:
+            subsed_expr = expr.subs(subs)
+        subsed_expr = subsed_expr.simplify()
+
+        fs = subsed_expr.free_symbols
+        diff = fs.difference(args)
+        if not len(diff) == 0:
+            raise AttributeError('missing replacement for symbol {}'.format(diff))
+
+        func = sy.lambdify(args, subsed_expr, dummify=False, modules='numpy')
+
+    if vectorize:
+        return np.vectorize(func)
+    else:
+        return func
 
 
 def vstack(M):

@@ -1,0 +1,1204 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage[]{algorithm2e}
+
+\author{Falaize}
+
+\title{RAN LaSIE}
+\input{commandes}
+\begin{document}
+%
+%
+\part{CURRENT}
+\begin{description}
+\item[$\Id$] Identity tensor,
+%
+\item[$p$] Pressure (scalar quantity),
+%
+\item[$\vu$] Velocity (vector quantity),
+%
+\item[$\sT\subset \RR$] temporal domain,
+%
+\item $t \in \sT$ the temporal variable,
+%
+\item[$\dom\subset \RR ^d$] Whole computational domain,
+%
+\item $\vx \in \Omega$ the spatial variable,
+%
+\item[$\doms(t) \subset \Omega$] Solid domain,
+%
+\item[$\domf(t) = \dom \setminus \doms(t)$] Fluid domain,
+%
+\item[$\bou(t)$] Fluid boundary,
+%
+\item[$\boui(t)\subset \bou$] fluid/solid interface,
+%
+\item[$\boud\subseteq \big(\bou\setminus \boui(t)\big)$] Fluid boundary with Dirichlet boundary condition,
+%
+\item[$\boun \subseteq \big(\bou \setminus \boui(t)\big)$] Fluid boundary with Neumann boundary condition,
+%
+\item $\sH(\Omega, \sT)$ a Hilbert space,
+%
+\item $\vu \in \sH(\Omega, \sT)$ the velocity field,
+%
+\item $\ind{\doms}(\vx, t)=\left\{\begin{array}{l}
+1 \mbox{~~if~~} \vx \in \doms(t), \\
+0 \mbox{~~either}.
+\end{array} \right.$
+%
+\item $V_\labg\in\RR^d$ the velocity of the center of mass for the solid,
+%
+\item $\vomegas = \omegas\,\vec e_3 $ the instantaneous rotation vector for the solid,
+%
+\item $J_\labs \in \RR$ the moment of inertia of the solid,
+%
+%
+\end{description}
+%
+$$\forall \vx \in \Omega: \quad \vu(\vx, t) = \ind{\doms}(\vx, t)\, \vus(\vx, t) + \big(1-\ind \doms \big)\,\vuf(\vx, t)$$
+%
+\begin{equation}
+\left\{
+\begin{array}{ll}
+\rhof\,\left(\dt{\vuf} + \grad \vuf\cdot \vuf \right)= \div \vsigmaf + \underbrace{\vf_\labf}_{\triangleq 0} & \forall \vx \in \domf(t),\\
+\div \vuf = 0 & \forall \vx \in \domf(t), \\
+m\,\dt{V_\labg} = \underbrace{F_\labs}_{\triangleq 0} \\
+J_\labs\,\dt{\vomegas}  = \underbrace{T_{\labs}-J_\labs\,\vomegas\wedge\vomegas}_{\triangleq 0}\\
+\vu(\vx, \,0) = \vu_{\mathrm{0}}(\vx) & \forall \vx \in \domf(t), \\
+\vsigma\cdot \vn_{\labi} = \vti & \forall \vx \in \Gamma_{\mathrm{I}}(t).
+\end{array}
+\right.
+\end{equation}
+%
+rigid solid: 
+$$\vus(\vx, t)= V_\labg(t) + \vomegas(t)\wedge \big(\vxg(t) - \vx\big),\; \forall \vx \in \doms(t),$$
+where $$V_\labg(t) = \vus(\vx_\labg(t), t)$$ and $$\vomegas = \omegas\,\vec e_3 $$ is the instantaneous rotation vector.
+%
+
+Note this yields $\D{\vus} = 0$
+
+\subsection{Weak formulation for the fluid}
+We define a test function:
+$$\vvf \in \left\{\vu \in \sH(\domf, \sT);\; \vu(\vx, t) = 0 \; \forall \vx \in \boud(t) \mbox{~~and~~} \vu(\vx, t) = \vui(\vx, t)\; \forall \vx \in \boui(t) \right\} $$
+%
+Then the weak formulation of the Navier-Stokes equations reads
+%
+$$\rhof\,\prodscal{\dt \vuf + \grad \vuf \cdot \vuf}{\vvf}=\prodscal{\div\vsigmaf}{\vvf}$$
+with
+$$
+\begin{array}{rcl}
+\prodscal{\div\vsigmaf}{\vvf} &=& \int_{\boui}\big(p\,\Id- 2\,\nuf\,\D \vuf \big)\cdot \vec n\,\vvf\,\d \vx \\
+&& - \int_{\domf} \trace{\D \vuf \cdot \D \vvf}\,\d \vx \\
+&& + \int_{\domf}p\,\div \vvf\,\d \vx.
+\end{array}
+$$
+with $\vec n$ the outward normal to the solid domain interface.
+%
+\subsection{Weak formulation for the solid}
+%
+Local equilibrium equation
+%
+$$\rhos \frac{D \, \vus}{D t} = \div \vsigmas + \underbrace{\vf_\labs}_{\triangleq 0} $$
+%
+with the associated weak formulation
+$$ \rhos \,\int_{\doms(t)} \frac{D \, \vus}{D t} \cdot \vvs \, \d \vx = \int_{\doms(t)} \big(\div \vsigmas\big) \cdot \vvs \, \d \vx $$
+%
+If it exists $\tilde{V}\in \RR^2$ and $\tilde{W}\in \RR ^2$ s.t.
+
+\begin{equation}
+\label{eq:vvs}
+\vvs(\vx)= \tilde V + \tilde{W}\wedge \big(\vxg(t) - \vx\big),\; \forall \vx \in \doms(t),
+\end{equation}
+
+the weak formulation include the \emph{theorem of moments} (\cf thèse Erwan (5.26))
+
+We rewrite
+\begin{equation}
+\label{eq:(div_sigma,vvs)}
+\int_{\doms(t)} \big(\div \vsigmas\big) \cdot \vvs \, \d \vx = \int_{\boui(t)} \big(\vsigmas\cdot \vec n\big) \cdot \vvs \, \d \vx-\underbrace{\int_{\doms(t)} \trace{\vsigmas\cdot \D{\vvs}}\, \d \vx }_{=0}
+\end{equation}
+
+From the special structure (\ref{eq:vvs}), the first term in (\ref{eq:(div_sigma,vvs)}) reads
+
+\begin{eqnarray}
+\int_{\boui(t)} \big(\vsigmas\cdot \vec n\big) \cdot \vvs \, \d \vx &=& 
+\int_{\boui(t)} \big(\vsigmas\cdot \vec n\big) \cdot \tilde V \, \d \vx+\int_{\boui(t)} \big(\vsigmas\cdot \vec n\big) \cdot \tilde{W}\wedge \big(\vxg(t) - \vx\big) \, \d \vx \nonumber\\
+&=& F_\labs\cdot\tilde{V} + T_\labs \cdot \tilde{W}
+\end{eqnarray}
+
+\subsection{Coupling the fluid and solid velocity fields}
+Recall we imposed $\vuf(\vx, t)\vert_{\vx \in\boui}=\vus(\vx, t)\vert_{\vx \in\boui}=\vui(\vx, t)$. Then, we can build a variational formulation on the whole domain $\dom$ for the following test function:
+$$\vv \in \left\{\vu \in \sH(\dom, \sT);\; \vu(\vx, t) = 0 \; \forall \vx \in \boud \mbox{~~and~~} \D{\vu(\vx, t)} = 0\; \forall \vx \in \doms(t) \right\} $$
+with the global velocity 
+$$\forall \vx \in \Omega: \quad \vu(\vx, t) = \ind{\doms}(\vx, t)\, \vus(\vx, t) + \big(1-\ind \doms \big)\,\vuf(\vx, t)$$
+and the materials properties
+$$\forall \vx \in \Omega: \quad \rho(\vx, t) = \rhos\,\ind{\doms}(\vx, t) + \rhof\,\big(1-\ind \doms \big)$$
+$$\forall \vx \in \Omega: \quad \nu(\vx, t) = \nus\,\ind{\doms}(\vx, t) + \nuf\,\big(1-\ind \doms \big)$$
+
+This is equivalent to the following strong formulation in the solid domain:
+\begin{equation}
+\left\{
+\begin{array}{ll}
+\rhos\,\left(\dt{\vu} + \grad \vu\cdot \vu \right)= \div \vsigmas + \underbrace{\vf_\labs}_{\triangleq 0} & \forall \vx \in \doms(t),\\
+\div \vu = 0 & \forall \vx \in \doms(t), \\
+\vu(\vx, t) = \vus(\vx, t) & \forall \vx \in \doms(t), \\
+\D{\vu} = 0 & \forall \vx \in \doms(t), \\
+\vu(\vx,t)=\vui(\vx,t) & \forall \vx \in \boui(t) \\
+\vu(\vx, \,0) = \vu_{\mathrm{0}}(\vx) & \forall \vx \in \doms(t), \\
+\vsigmas\cdot \vn_{\labi} = \vsigmaf\cdot \vn_{\labi} & \forall \vx \in \boui(t).
+\end{array}
+\right.
+\end{equation}
+where $\vsigmas$ is the solid stress tensor such that $\D{\vus}=0$. This is included in a weak form by introducing a penalty coefficient $\nus$ and a tensor that derives from a distributed vector Lagrange multiplier:
+\begin{equation}
+\label{eq:L}
+\vec L(\vx, t) = \D{\vlambda(\vx, t)}
+\end{equation}
+
+
+The following is based on the presentation in \cite[\textsection{2}]{patankar2000new}. first, they state (\ref{eq:L}) as a result of the equations below
+\begin{eqnarray}
+\label{eq:L_constraints}
+\left\{ 
+\begin{array}{rcll}
+\div {\D \vu} &=& 0 &\forall \vx \in \doms(t) \\
+\D \vu \cdot \vec n &=& 0 &\forall \vx \in \boui(t)
+\end{array}
+\right.
+\end{eqnarray}
+
+
+
+They define
+\begin{itemize}
+\item a velocity solution space: 
+$$\sVf = \left\{\vu \in \sH\big(\domf(t), \sT\big);\;\vu(\vx, t) = \vud(\vx, t)\; \forall \vx \in \boud \right\}$$
+\item a velocity test space 
+$$\sV_0 = \left\{\vu \in \sH\big(\domf(t), \sT\big);\;\vu(\vx, t) = \vec 0 \; \forall \vx \in \boud \right\}$$
+\item a pressure solution space
+$$\sP_0(\dom) = \left\{p \in \sL^2\big(\dom, \sT\big);\; \int_{\dom}p(\vx, t) \,\d\vx = 0 \right\}$$
+\end{itemize}
+
+Then they write the weak formulation for the fluid phase:\\
+$\forall \vu \in \sVf$, $\forall \vv \in \sV_0$ and $\forall q \in \sL^2\big(\dom, \sT\big)$
+%
+\begin{eqnarray}
+\nonumber 0 &=& \int_{\domf(t)}\rhof\left(\dt \vuf + \grad \vuf \cdot \vuf\right)\cdot\vv \,\d\vx + \int_{\domf(t)}\vsigmaf:\D{\vv} \, \d\vx+\int_{\boui(t)} (\vsigmaf\cdot\vec n) \cdot\vv \,\d\vx  \\
+\label{eq:fluid_weak} &&  + \int_{\domf(t)} q\,\div \vuf \,\d\vx 
+\end{eqnarray}
+with $\vsigmaf = -p\,\Id + 2\,\nuf\,\D{\vuf} $, that is
+$$ \int_{\domf(t)}\vsigmaf:\D{\vv} \, \d\vx = -\int_{\domf(t)}p\, \div\vv \, \d\vx + \int_{\domf(t)}2\,\nuf\,\trace{\D{\vuf}\cdot\D{\vv}} \, \d\vx. $$
+%
+Now they define
+\begin{itemize}
+\item a velocity solution space: 
+$$\sVs = \left\{\vu \in \sH\big(\doms(t), \sT\big);\; \D{\vu(\vx, t)} = \vec 0 \; \forall \vx \in \doms(t) \right\}$$
+\end{itemize}
+
+The weak formulation for the solid phase is given by:\\
+$\forall \vu \in \sVs$, $\forall \vv \in \sVs$, $\forall p \in \sP_0\big(\domf(t)\big)$ and $\forall q \in \sL^2\big(\dom, \sT\big)$
+$$
+0 = 
+\int_{\doms(t)}\rhos\left(\dt \vu + \grad \vu \cdot \vu\right)\cdot\vv \,\d\vx 
+- \int_{\doms(t)} p\,\div \vv \,\d\vx
+- \int_{\boui(t)} (\vsigma\cdot\vec n) \cdot\vv \,\d\vx
++ \int_{\doms(t)} q\,\div \vu \,\d\vx
+$$
+The rigidity constraint is enforced as in \cite{glowinski1999distributed}, that is, as the weak form of a side constraint which corresponds to the weak form of (\ref{eq:L_constraints}), given by \cite{patankar2000new}
+\begin{equation}
+\label{eq:L_weak}
+\int_{\doms(t)}\D\vmu : \D \vu\,\d \vx = 0, \quad \forall\vmu \in \sH\big(\doms(t),\sT\big),
+\end{equation}
+where $\vu \in \sH\big(\doms(t),\sT\big)$. The use of (\ref{eq:L_weak}) yields the introduction of an appropriate distributed Lagrange multiplier $\vlambda$. The modified weak formulation for the solid is then: \\
+$
+\begin{array}{ll}
+\forall \vu \in \sVs, & \forall \vv \in \sVs, \\
+\forall p \in \sP_0\big(\doms(t)\big) &,  \forall q \in \sL^2\big(\doms(t), \sT\big), \\
+\forall \vlambda \in \sH\big(\doms(t),\sT\big)&,  \forall \vmu \in \sH\big(\doms(t),\sT\big), \\
+\end{array}
+$
+\begin{eqnarray}
+\nonumber 0 &=& 
+\int_{\doms(t)}\rhos\left(\dt \vus + \grad \vus \cdot \vus\right)\cdot\vv \,\d\vx 
+- \int_{\boui(t)} (\vsigmas\cdot\vec n) \cdot\vv \,\d\vx \\
+\nonumber & & - \int_{\doms(t)} p\,\div \vv \,\d\vx + \int_{\doms(t)}\D\vlambda : \D \vv \, \d \vx \\
+\label{eq:solid_weak} & & + \int_{\doms(t)} q\,\div \vus \,\d\vx + \int_{\doms(t)}\D\vmu : \D \vus\,\d \vx
+\end{eqnarray}
+
+The formulation on the complete domain is obtained by summing (\ref{eq:fluid_weak}) and (\ref{eq:solid_weak}). First, they define
+\begin{itemize}
+\item a global velocity solution space: 
+$$\sW = \left\{\vu \in \sH\big(\dom, \sT\big);\;\vu(\vx, t) = \vud(\vx, t)\; \forall \vx \in \boud \right\}$$
+$$\sW = \left\{\vu \in \sH\big(\dom, \sT\big);\;\div \vu(\vx, t)=0\; \forall \vx \in \dom,\,\D{\vu(\vx, t)}=0\; \forall \vx \in \doms(t),\,\vu(\vx, t) = \vud(\vx, t)\; \forall \vx \in \boud \right\}?$$
+\item a global velocity test space 
+$$\sW_0 = \left\{\vu \in \sH\big(\dom, \sT\big);\;\vu(\vx, t) = \vec 0 \; \forall \vx \in \boud \right\}$$
+\end{itemize}
+$$
+\begin{array}{ll}
+\forall \vu \in \sW, & \forall \vv \in \sW_0, \\
+\forall p \in \sP_0\big(\dom\big) &,  \forall q \in \sL^2\big(\dom, \sT\big), \\
+\forall \vlambda \in \sH\big(\doms(t),\sT\big)&,  \forall \vmu \in \sH\big(\doms(t),\sT\big), \\
+\end{array}
+$$
+\begin{eqnarray}
+\nonumber 0 &=& 
+\int_{\dom}\rho\left(\dt \vu + \grad \vu \cdot \vu\right)\cdot\vv \,\d\vx + \int_{\dom}2\,\nu\,\trace{\D{\vu}\cdot\D{\vv}} \, \d\vx\\
+\nonumber & & - \int_{\dom} p\,\div \vv \,\d\vx + \int_{\doms(t)}\trace{\D\vlambda \cdot \D \vv }\, \d \vx \\
+\label{eq:solid_weak} & & + \int_{\dom} q\,\div \vu \,\d\vx + \int_{\doms(t)}\trace{\D\vmu \cdot\D \vu}\,\d \vx
+\end{eqnarray}
+%
+
+Notice the terms associated to the mutual stress on the fluid/solid interface $\boui$ cancel together.
+%
+
+\section{Weak formulation on the POD basis}
+%%
+We consider the POD basis $(\vphi_i(\vx))_{1 \leq i \leq N_\Phi}$ with $\vu(\vx, t)\simeq \bu(\vx) + \sum_{i=1}^{N_\Phi}\vphi_i(\vx)\,\alpha_i(t)$
+\begin{eqnarray}
+\nonumber 0 &=& 
+\int_{\dom}\rho\left(\dt \vu + \grad \vu \cdot \vu\right)\cdot\vphi_i \,\d\vx + \int_{\dom}2\,\nu\,\trace{\D{\vu}\cdot\D{\vphi_i}} \, \d\vx\\
+\nonumber & & - \int_{\dom} p\,\div \vphi_i \,\d\vx + \int_{\doms(t)}\trace{\D\vlambda \cdot \D \vphi_i }\, \d \vx \\
+\label{eq:solid_weak} & & + \int_{\dom} q\,\div \vu \,\d\vx + \int_{\doms(t)}\trace{\D\vmu \cdot\D \vu}\,\d \vx
+\end{eqnarray}
+
+
+
+\section{ROM}
+\begin{eqnarray}
+\rho(\vx, t) &=& \rhos\,\ind{\doms(t)}(\vx)+\rhof\,\Big( 1-\ind{\doms(t)}(\vx) \Big) \\
+\nu(\vx, t) &=& \nus\,\ind{\doms(t)}(\vx)+\nuf\,\Big( 1-\ind{\doms(t)}(\vx) \Big) \\
+a_{i,j}(\vx) &=& \vphi_j(\vx)\cdot\vphi_i(\vx) \\
+b_{i,j}^\rho(\vx) &=& \left(\grad \vphi_j(\vx)\cdot\bu(\vx) + \grad \bu(\vx) \cdot\vphi_j(\vx) \right) \cdot\vphi_i(\vx)  \\ 
+b_{i,j}^\nu(\vx) &=& 2\,\trace{\D{\vphi_j(\vx)}\cdot\D{\vphi_i(\vx)}} \\
+c_{i,j,k}(\vx) &=& \Big(\grad \vphi_j(\vx)\cdot\vphi_k(\vx)\Big)\cdot\vphi_i(\vx)\\
+f^\rho_{i}(\vx) &=& \Big(\grad \bu(\vx)\cdot\bu(\vx)\Big)\cdot\vphi_i(\vx)\\
+f^\nu_{i}(\vx)&= &  2\,\trace{\D{\bu(\vx)}\cdot\D{\vphi_i(\vx)}} \\
+f^\lambda_{i}(\vx)&= & \trace{\D{\vlambda(\vx)}\cdot\D{\vphi_i(\vx)}}
+\end{eqnarray}
+
+\begin{eqnarray}
+A_{i,j}(t) &=& \int_{\dom}\rho( \vx, t)\,a_{i,j}(\vx)\,\d\vx \\
+B_{i,j}(t) &=& \int_{\dom}\rho( \vx, t)\,b_{i,j}^\rho(\vx) \,\d\vx +\int_{\dom} \nu( \vx, t)\,b_{i,j}^\nu(\vx) \,\d\vx \\
+C_{i,j,k}(t) &=& \int_{\dom}\rho( \vx, t)\,c_{i,j,k}(\vx)\,\d\vx \\
+F_{i}(t) &=& \int_{\dom}\rho( \vx, t)\,f^\rho_{i}(\vx)\,\d\vx + \int_{\dom} \nu( \vx, t)\,f^\nu_{i}(\vx) \,\d\vx + \int_{\doms(t)} \ind{\doms(t)}(\vx)\,f^\lambda_{i}(\vx) \,\d\vx
+\end{eqnarray}
+
+
+\paragraph{Implémentation}
+\begin{eqnarray}
+\rho_x(\theta) &=& \rhof + (\rhof-\rhos)\,\he\big(\chi_x(\theta)\big) \\
+\nu_x(\theta) &=& \nuf + (\nuf-\nus)\,\he\big(\chi_x(\theta)\big) \\
+a_{x,i,j} &=& \sum_{c=1}^{D}\vphi_{x,c,j}\,\vphi_{x,c,i} \\
+b_{x,i,j}^\rho &=& \sum_{c=1}^{D}\sum_{d=1}^{D} \Big( \grad \vphi_{x, c, d, j}\,\bu_{x, d} + \grad \bu_{x, c, d} \,\vphi_{x, d, j} \Big)\,\vphi_{x, c, i}\\ 
+b_{x,i,j}^\nu &=& \frac{1}{2}\,\sum_{c=1}^D{\sum_{d=1}^D \left( \grad\vphi_{x, c,d, j} + \grad\vphi_{x, d, c, j} \right)\, \left( \grad\vphi_{x, d,c, i} + \grad\vphi_{x, c, d, i} \right)} \\
+c_{x,i,j,k}&=& \sum_{c=1}^D \Big(\sum_{d=1}^D \grad\vphi_{x, c,d,j}\,\vphi_{x,d,k}\Big)\, \vphi_{x,c,i}\\
+f^\rho_{x, i}&=& \sum_{c=1}^D\sum_{d=1}^D\Big(\grad \bu_{x, c,d}\,\bu_{x, d}\Big)\,\vphi_{x, c, i}\\
+f^\nu_{x, i} &=& \frac{1}{2}\,\sum_{c=1}^D{\sum_{d=1}^D \left( \grad\bu_{x, c,d} + \grad\bu_{x, d, c} \right)\, \left( \grad\vphi_{x, d,c, i} + \grad\vphi_{x, c, d, i} \right)} \\
+f^\lambda_{x,i}&= & \frac{1}{4}\,\sum_{c=1}^D{\sum_{d=1}^D \left( \grad\vlambda_{x, c,d} + \grad\vlambda_{x, d, c} \right)\, \left( \grad\vphi_{x, d,c, i} + \grad\vphi_{x, c, d, i} \right)}
+\end{eqnarray}
+
+$\D{\vphi_{x, c,j}} \triangleq \frac{1}{2} \left( \grad\vphi_{x, c,d, j} + \grad\vphi_{x, d, c, j} \right)$
+
+\begin{equation}
+\sum_{j=1}^{N_\Phi} A_{i,j}\,\partialt{\alpha_j}+\sum_{j=1}^{N_\Phi} B_{i,j}\,{\alpha_j}+\sum_{j=1}^{N_\Phi}\sum_{k=1}^{N_\Phi}  C_{i,j,k}\,\alpha_j\,\alpha_k + F_{i} = 0
+\end{equation}
+
+
+\section{Algorithme}
+\begin{algorithm}[H]
+ \KwData{$\vec \alpha (t_{n})$, $\theta(t_{n+1})$}
+ \KwResult{$\vec \alpha (t_{n+1})$}
+$\ind{\doms}(x)= \he\Big(\chi_x\big(\theta(t_{n})\big)\Big)$\;
+$\rho_x = \rhof + (\rhos-\rhof)\,\ind{\doms}(x)$ \;
+$\nu_x = \nuf + (\nus-\nuf)\,\ind{\doms}(x)$ \;
+$A_{i,j} = \sum_{x=1}^{N_{\vx}}\rho_x\,a_{x, i,j}$ \;
+$B_{i,j} = \sum_{x=1}^{N_{\vx}}\left(\rho_x\,b_{x,i,j}+\nu_x\,\,b_{x, i,j}\right)$ \;
+$C_{i,j,k} = \sum_{x=1}^{N_{\vx}}\rho_x\,\,c_{x, i,j,k}$ \;
+$f^\rho_{i} \leftarrow \sum_{x=1}^{N_{\vx}}\rho_x\,\,f^\rho_{x, i}$\;
+$f^\nu_{i} \leftarrow \sum_{x=1}^{N_{\vx}}\nu_x\,\,f^\nu_{x, i}$\;
+\;
+$\ell\leftarrow 0$\;
+$\vec\alpha ^{\ell} \leftarrow \vec \alpha (t_{n})$\;
+$\vu^{\ell}_{x, c} = \bu_{x, c}+\sum_{j=1}^{N_\Phi}\vphi_{xcj}\,\alpha_j^{\ell} $\;
+$\vlambda^{\ell} \leftarrow \vec 0$\; 
+ \While{$\parallel\vu^{\ell}-\vu^{\ell-1}\parallel > \epsilon_{\vu}$ and $\parallel \ind{\doms}\D{\vu^{\ell}}\parallel > \epsilon_{\vlambda}$}{
+$\ell \leftarrow \ell +1$\;
+$f^{\lambda,\ell}_{x,i} \leftarrow \frac{1}{4}\,\sum_{c=1}^D{\sum_{d=1}^D \left( \grad\vlambda_{x, c,d}^{\ell-1} + \grad\vlambda^{\ell-1}_{x, d, c} \right)\, \left( \grad\vphi_{x, d,c, i} + \grad\vphi_{x, c, d, i} \right)}
+$\;
+$F_{i}^\ell = f^\rho_{i}  + f^\nu_{i}  +\sum_{x=1}^{N_{\vx}}\ind{\doms}(x)\,f^{\lambda,\ell}_{x,i}$ \;
+Solve $\sum_{j=1}^{N_\Phi}\Big(\left(\frac{A_{i,j}}{\Delta t}+B_{i,j}+\sum_{k=1}^{N_\Phi}  C_{i,j,k}\,\alpha_k^{\ell-1}\right)\, \alpha_j^{\ell} -\frac{A_{i,j}}{\Delta t}\,\alpha_j(t_{n}) \Big)+ F_{i}^\ell= 0$\;
+$\vu^{\ell}_{x, c} = \bu_{x, c}+\sum_{j=1}^{N_\Phi}\vphi_{xcj}\,\alpha_j^{\ell} $\;
+$\vlambda^{\ell}_{x, c} \leftarrow \vlambda^{\ell-1}_{x, c}- \nu_x \, \vu^{\ell}_{x, c}$\; 
+}
+$\alpha_i(t_{n+1}) \leftarrow \alpha_i^{\ell}$\;
+ \caption{Resolution with Newton-Uzawa.}
+\end{algorithm}
+
+\section{relaxed velocity}
+
+\begin{equation}
+\left\{
+\begin{array}{ll}
+\rhos\,\left(\dt{\vu} + \grad \vu\cdot \vu \right)= \div \vsigmas + {\vf_\labo}& \forall \vx \in \doms(t),\\
+\div \vu = 0 & \forall \vx \in \doms(t), \\
+\vu(\vx, t) = \vuo(\vx, t) & \forall \vx \in \doms(t), \\
+\D{\vu} = 0 & \forall \vx \in \doms(t), \\
+\vu(\vx,t)=\vui(\vx,t) & \forall \vx \in \boui(t) \\
+\vu(\vx, \,0) = \vu_{\mathrm{0}}(\vx) & \forall \vx \in \doms(t), \\
+\vsigmas\cdot \vn_{\labi} = \vsigmaf\cdot \vn_{\labi} & \forall \vx \in \boui(t).
+\end{array}
+\right.
+\end{equation}
+where $\vf_\labo$ is volumic force imposed so that $\vu(\vx, t) = \vuo(\vx, t)$ in $\doms(t)$. This is included in a weak form by introducing a penalty coefficient $\eta$
+\\
+
+The following is based on the presentation in \cite[\textsection{2}]{patankar2000new}. 
+%
+They define
+\begin{itemize}
+\item a velocity solution space: 
+$$\sVf = \left\{\vu \in \sH\big(\domf(t), \sT\big);\;\vu(\vx, t) = \vud(\vx, t)\; \forall \vx \in \boud \right\}$$
+\item a velocity test space 
+$$\sV_0 = \left\{\vu \in \sH\big(\domf(t), \sT\big);\;\vu(\vx, t) = \vec 0 \; \forall \vx \in \boud \right\}$$
+\item a pressure solution space
+$$\sP_0(\dom) = \left\{p \in \sL^2\big(\dom, \sT\big);\; \int_{\dom}p(\vx, t) \,\d\vx = 0 \right\}$$
+\end{itemize}
+
+Then they write the weak formulation for the fluid phase:\\
+$\forall \vu \in \sVf$, $\forall \vv \in \sV_0$ and $\forall q \in \sL^2\big(\dom, \sT\big)$
+%
+\begin{eqnarray}
+\nonumber 0 &=& \int_{\domf(t)}\rhof\left(\dt \vuf + \grad \vuf \cdot \vuf\right)\cdot\vv \,\d\vx + \int_{\domf(t)}\vsigmaf:\D{\vv} \, \d\vx+\int_{\boui(t)} (\vsigmaf\cdot\vec n) \cdot\vv \,\d\vx  \\
+\label{eq:fluid_weak} &&  + \int_{\domf(t)} q\,\div \vuf \,\d\vx 
+\end{eqnarray}
+with $\vsigmaf = -p\,\Id + 2\,\nuf\,\D{\vuf} $, that is
+$$ \int_{\domf(t)}\vsigmaf:\D{\vv} \, \d\vx = -\int_{\domf(t)}p\, \div\vv \, \d\vx + \int_{\domf(t)}2\,\nuf\,\trace{\D{\vuf}\cdot\D{\vv}} \, \d\vx. $$
+%
+Now they define
+\begin{itemize}
+\item a velocity solution space: 
+$$\sVs = \left\{\vu \in \sH\big(\doms(t), \sT\big);\; \vu(\vx, t) = \vus(\vx, t) \; \forall \vx \in \doms(t) \right\}$$
+\end{itemize}
+
+The weak formulation for the solid phase is given by:\\
+$\forall \vu \in \sVs$, $\forall \vv \in \sVs$, $\forall p \in \sP_0\big(\domf(t)\big)$ and $\forall q \in \sL^2\big(\dom, \sT\big)$
+$$
+0 = 
+\int_{\doms(t)}\rhos\left(\dt \vu + \grad \vu \cdot \vu\right)\cdot\vv \,\d\vx 
+- \int_{\doms(t)} p\,\div \vv \,\d\vx
+- \int_{\boui(t)} (\vsigma\cdot\vec n) \cdot\vv \,\d\vx
++ \int_{\doms(t)} q\,\div \vu \,\d\vx
+$$
+The velocity constraint is enforced as in \cite{glowinski1999distributed}, that is, as the weak form of a side constraint which corresponds to the weak form of (\ref{eq:L_constraints}), given by \cite{patankar2000new}
+\begin{equation}
+\label{eq:L_weak}
+\int_{\doms(t)} \vmu \cdot (\vu-\vuo)\,\d \vx = 0, \quad \forall\vmu \in \sH\big(\doms(t),\sT\big),
+\end{equation}
+where $\vu \in \sH\big(\doms(t),\sT\big)$. The use of (\ref{eq:L_weak}) yields the introduction of an appropriate distributed Lagrange multiplier $\vlambda$. The modified weak formulation for the solid is then: \\
+$
+\begin{array}{ll}
+\forall \vu \in \sVs, & \forall \vv \in \sVs, \\
+\forall p \in \sP_0\big(\doms(t)\big) &,  \forall q \in \sL^2\big(\doms(t), \sT\big), \\
+\forall \vlambda \in \sH\big(\doms(t),\sT\big)&,  \forall \vmu \in \sH\big(\doms(t),\sT\big), \\
+\end{array}
+$
+\begin{eqnarray}
+\nonumber 0 &=& 
+\int_{\doms(t)}\rhos\left(\dt \vus + \grad \vus \cdot \vus\right)\cdot\vv \,\d\vx 
+- \int_{\boui(t)} (\vsigmas\cdot\vec n) \cdot\vv \,\d\vx \\
+\nonumber & & - \int_{\doms(t)} p\,\div \vv \,\d\vx + \int_{\doms(t)} \vlambda \cdot (\vv-\vuo) \, \d \vx \\
+\label{eq:solid_weak} & & + \int_{\doms(t)} q\,\div \vus \,\d\vx + \int_{\doms(t)}\vmu \cdot (\vus-\vuo)\,\d \vx
+\end{eqnarray}
+
+The formulation on the complete domain is obtained by summing (\ref{eq:fluid_weak}) and (\ref{eq:solid_weak}). First, they define
+\begin{itemize}
+\item a global velocity solution space: 
+$$\sW = \left\{\vu \in \sH\big(\dom, \sT\big);\;\vu(\vx, t) = \vud(\vx, t)\; \forall \vx \in \boud \right\}$$
+$$\sW = \left\{\vu \in \sH\big(\dom, \sT\big);\;\div \vu(\vx, t)=0\; \forall \vx \in \dom,\,\D{\vu(\vx, t)}=0\; \forall \vx \in \doms(t),\,\vu(\vx, t) = \vud(\vx, t)\; \forall \vx \in \boud \right\}?$$
+\item a global velocity test space 
+$$\sW_0 = \left\{\vu \in \sH\big(\dom, \sT\big);\;\vu(\vx, t) = \vec 0 \; \forall \vx \in \boud \right\}$$
+\end{itemize}
+$$
+\begin{array}{ll}
+\forall \vu \in \sW, & \forall \vv \in \sW_0, \\
+\forall p \in \sP_0\big(\dom\big) &,  \forall q \in \sL^2\big(\dom, \sT\big), \\
+\forall \vlambda \in \sH\big(\doms(t),\sT\big)&,  \forall \vmu \in \sH\big(\doms(t),\sT\big), \\
+\end{array}
+$$
+\begin{eqnarray}
+\nonumber 0 &=& 
+\int_{\dom}\rho\left(\dt \vu + \grad \vu \cdot \vu\right)\cdot\vv \,\d\vx + \int_{\dom}2\,\nu\,\trace{\D{\vu}\cdot\D{\vv}} \, \d\vx\\
+\nonumber & & - \int_{\dom} p\,\div \vv \,\d\vx + \int_{\doms(t)} \vlambda \cdot (\vv-\vuo) \, \d \vx \\
+\label{eq:solid_weak} & & + \int_{\dom} q\,\div \vu \,\d\vx + \int_{\doms(t)}\vmu \cdot (\vu-\vuo)\,\d \vx
+\end{eqnarray}
+%
+
+Notice the terms associated to the mutual stress on the fluid/solid interface $\boui$ cancel together.
+%
+
+\section{Weak formulation on the POD basis}
+%%
+We consider the POD basis $(\vphi_i(\vx))_{1 \leq i \leq N_\Phi}$ with $\vu(\vx, t)\simeq \bu(\vx) + \sum_{i=1}^{N_\Phi}\vphi_i(\vx)\,\alpha_i(t)$
+\begin{eqnarray}
+\nonumber 0 &=& 
+\int_{\dom}\rho\left(\dt \vu + \grad \vu \cdot \vu\right)\cdot\vphi_i \,\d\vx + \int_{\dom}2\,\nu\,\trace{\D{\vu}\cdot\D{\vphi_i}} \, \d\vx\\
+\nonumber & & - \int_{\dom} p\,\div \vphi_i \,\d\vx + \int_{\doms(t)} \vlambda \cdot (\vphi_i-\vuo) \, \d \vx \\
+\label{eq:solid_weak} & & + \int_{\dom} q\,\div \vu \,\d\vx + \int_{\doms(t)}\vmu \cdot (\vu-\vuo)\,\d \vx
+\end{eqnarray}
+
+
+
+\section{ROM}
+\begin{eqnarray}
+\rho(\vx, t) &=& \rhos\,\ind{\doms(t)}(\vx)+\rhof\,\Big( 1-\ind{\doms(t)}(\vx) \Big) \\
+\nu(\vx, t) &=& \nus\,\ind{\doms(t)}(\vx)+\nuf\,\Big( 1-\ind{\doms(t)}(\vx) \Big) \\
+a_{i,j}(\vx) &=& \vphi_j(\vx)\cdot\vphi_i(\vx) \\
+b_{i,j}^\rho(\vx) &=& \left(\grad \vphi_j(\vx)\cdot\bu(\vx) + \grad \bu(\vx) \cdot\vphi_j(\vx) \right) \cdot\vphi_i(\vx)  \\ 
+b_{i,j}^\nu(\vx) &=& 2\,\trace{\D{\vphi_j(\vx)}\cdot\D{\vphi_i(\vx)}} \\
+c_{i,j,k}(\vx) &=& \Big(\grad \vphi_j(\vx)\cdot\vphi_k(\vx)\Big)\cdot\vphi_i(\vx)\\
+f^\rho_{i}(\vx) &=& \Big(\grad \bu(\vx)\cdot\bu(\vx)\Big)\cdot\vphi_i(\vx)\\
+f^\nu_{i}(\vx)&= &  2\,\trace{\D{\bu(\vx)}\cdot\D{\vphi_i(\vx)}} \\
+f^\lambda_{i}(\vx)&= & \trace{\D{\vlambda(\vx)}\cdot\D{\vphi_i(\vx)}}
+\end{eqnarray}
+
+\begin{eqnarray}
+A_{i,j}(t) &=& \int_{\dom}\rho( \vx, t)\,a_{i,j}(\vx)\,\d\vx \\
+B_{i,j}(t) &=& \int_{\dom}\rho( \vx, t)\,b_{i,j}^\rho(\vx) \,\d\vx +\int_{\dom} \nu( \vx, t)\,b_{i,j}^\nu(\vx) \,\d\vx \\
+C_{i,j,k}(t) &=& \int_{\dom}\rho( \vx, t)\,c_{i,j,k}(\vx)\,\d\vx \\
+F_{i}(t) &=& \int_{\dom}\rho( \vx, t)\,f^\rho_{i}(\vx)\,\d\vx + \int_{\dom} \nu( \vx, t)\,f^\nu_{i}(\vx) \,\d\vx + \int_{\doms(t)} \ind{\doms(t)}(\vx)\,f^\lambda_{i}(\vx) \,\d\vx
+\end{eqnarray}
+
+
+\paragraph{Implémentation}
+\begin{eqnarray}
+\rho_x(\theta) &=& \rhof + (\rhof-\rhos)\,\he\big(\chi_x(\theta)\big) \\
+\nu_x(\theta) &=& \nuf + (\nuf-\nus)\,\he\big(\chi_x(\theta)\big) \\
+a_{x,i,j} &=& \sum_{c=1}^{D}\vphi_{x,c,j}\,\vphi_{x,c,i} \\
+b_{x,i,j}^\rho &=& \sum_{c=1}^{D}\sum_{d=1}^{D} \Big( \grad \vphi_{x, c, d, j}\,\bu_{x, d} + \grad \bu_{x, c, d} \,\vphi_{x, d, j} \Big)\,\vphi_{x, c, i}\\ 
+b_{x,i,j}^\nu &=& \frac{1}{2}\,\sum_{c=1}^D{\sum_{d=1}^D \left( \grad\vphi_{x, c,d, j} + \grad\vphi_{x, d, c, j} \right)\, \left( \grad\vphi_{x, d,c, i} + \grad\vphi_{x, c, d, i} \right)} \\
+c_{x,i,j,k}&=& \sum_{c=1}^D \Big(\sum_{d=1}^D \grad\vphi_{x, c,d,j}\,\vphi_{x,d,k}\Big)\, \vphi_{x,c,i}\\
+f^\rho_{x, i}&=& \sum_{c=1}^D\sum_{d=1}^D\Big(\grad \bu_{x, c,d}\,\bu_{x, d}\Big)\,\vphi_{x, c, i}\\
+f^\nu_{x, i} &=& \frac{1}{2}\,\sum_{c=1}^D{\sum_{d=1}^D \left( \grad\bu_{x, c,d} + \grad\bu_{x, d, c} \right)\, \left( \grad\vphi_{x, d,c, i} + \grad\vphi_{x, c, d, i} \right)} \\
+f^\lambda_{x,i}&= & \frac{1}{4}\,\sum_{c=1}^D{\sum_{d=1}^D \left( \grad\vlambda_{x, c,d} + \grad\vlambda_{x, d, c} \right)\, \left( \grad\vphi_{x, d,c, i} + \grad\vphi_{x, c, d, i} \right)}
+\end{eqnarray}
+
+$\D{\vphi_{x, c,j}} \triangleq \frac{1}{2} \left( \grad\vphi_{x, c,d, j} + \grad\vphi_{x, d, c, j} \right)$
+
+\begin{equation}
+\sum_{j=1}^{N_\Phi} A_{i,j}\,\partialt{\alpha_j}+\sum_{j=1}^{N_\Phi} B_{i,j}\,{\alpha_j}+\sum_{j=1}^{N_\Phi}\sum_{k=1}^{N_\Phi}  C_{i,j,k}\,\alpha_j\,\alpha_k + F_{i} = 0
+\end{equation}
+
+
+\section{Algorithme}
+\begin{algorithm}[H]
+ \KwData{$\vec \alpha (t_{n})$, $\theta(t_{n+1})$}
+ \KwResult{$\vec \alpha (t_{n+1})$}
+$\ind{\doms}(x)= \he\Big(\chi_x\big(\theta(t_{n})\big)\Big)$\;
+$\rho_x = \rhof + (\rhos-\rhof)\,\ind{\doms}(x)$ \;
+$\nu_x = \nuf + (\nus-\nuf)\,\ind{\doms}(x)$ \;
+$A_{i,j} = \sum_{x=1}^{N_{\vx}}\rho_x\,a_{x, i,j}$ \;
+$B_{i,j} = \sum_{x=1}^{N_{\vx}}\left(\rho_x\,b_{x,i,j}+\nu_x\,\,b_{x, i,j}\right)$ \;
+$C_{i,j,k} = \sum_{x=1}^{N_{\vx}}\rho_x\,\,c_{x, i,j,k}$ \;
+$f^\rho_{i} \leftarrow \sum_{x=1}^{N_{\vx}}\rho_x\,\,f^\rho_{x, i}$\;
+$f^\nu_{i} \leftarrow \sum_{x=1}^{N_{\vx}}\nu_x\,\,f^\nu_{x, i}$\;
+\;
+$\ell\leftarrow 0$\;
+$\vec\alpha ^{\ell} \leftarrow \vec \alpha (t_{n})$\;
+$\vu^{\ell}_{x, c} = \bu_{x, c}+\sum_{j=1}^{N_\Phi}\vphi_{xcj}\,\alpha_j^{\ell} $\;
+$\vlambda^{\ell} \leftarrow \vec 0$\; 
+ \While{$\parallel\vu^{\ell}-\vu^{\ell-1}\parallel > \epsilon_{\vu}$ and $\parallel \ind{\doms}\D{\vu^{\ell}}\parallel > \epsilon_{\vlambda}$}{
+$\ell \leftarrow \ell +1$\;
+$f^{\lambda,\ell}_{x,i} \leftarrow \frac{1}{4}\,\sum_{c=1}^D{\sum_{d=1}^D \left( \grad\vlambda_{x, c,d}^{\ell-1} + \grad\vlambda^{\ell-1}_{x, d, c} \right)\, \left( \grad\vphi_{x, d,c, i} + \grad\vphi_{x, c, d, i} \right)}
+$\;
+$F_{i}^\ell = f^\rho_{i}  + f^\nu_{i}  +\sum_{x=1}^{N_{\vx}}\ind{\doms}(x)\,f^{\lambda,\ell}_{x,i}$ \;
+Solve $\sum_{j=1}^{N_\Phi}\Big(\left(\frac{A_{i,j}}{\Delta t}+B_{i,j}+\sum_{k=1}^{N_\Phi}  C_{i,j,k}\,\alpha_k^{\ell-1}\right)\, \alpha_j^{\ell} -\frac{A_{i,j}}{\Delta t}\,\alpha_j(t_{n}) \Big)+ F_{i}^\ell= 0$\;
+$\vu^{\ell}_{x, c} = \bu_{x, c}+\sum_{j=1}^{N_\Phi}\vphi_{xcj}\,\alpha_j^{\ell} $\;
+$\vlambda^{\ell}_{x, c} \leftarrow \vlambda^{\ell-1}_{x, c}- \nu_x \, \vu^{\ell}_{x, c}$\; 
+}
+$\alpha_i(t_{n+1}) \leftarrow \alpha_i^{\ell}$\;
+ \caption{Resolution with Newton-Uzawa.}
+\end{algorithm}
+
+\part{CURRENT DEIM}
+%
+%
+\section{fluid structure interaction as multiphase flow with rigidity constraint}%
+%
+\cf \cite{patankar2000new}
+%
+\subsection{Notations and conventions}
+
+\begin{description}
+\item[$\Id$] Identity tensor,
+%
+\item[$p$] Pressure (scalar quantity),
+%
+\item[$\vu$] Velocity (vector quantity),
+%
+\item[$\dom$] Whole computational domain,
+%
+\item[$\doms(t) \subset \Omega$] Solid domain,
+%
+\item[$\domf = \dom \setminus \doms$] Fluid domain,
+%
+\item[$\bou$] Fluid boundary,
+%
+\item[$\boui\subset \bou$] fluid/solid interface,
+%
+\item[$\boud\subseteq (\bou\setminus \boui)$] Fluid boundary with Dirichlet boundary condition,
+%
+\item[$\boun \subseteq (\bou \setminus \boui)$] Fluid boundary with Neumann boundary condition,
+%
+%
+\end{description}
+
+\subsection{Strong form}
+%
+\subsubsection{Governing equations for the fluid}
+\begin{equation}
+\left\{
+\begin{array}{ll}
+\left(\dt{(\rhof\, \vu)} + \grad(\rhof\, \vu)\cdot \vu\right)= \div \vsigma + \rhof\, \vg & \forall \vx \in \domf(t), \\
+\div \vu = 0 & \forall \vx \in \domf(t), \\
+\vu(\vx,\,t) = \vud(\vx) & \forall \vx \in \Gamma_{\mathrm{D}}, \\
+\vu(\vx,\,t) = \vui(\vx,\,t) & \forall \vx \in \Gamma_{\mathrm{I}}(t), \\
+\vsigma\cdot \vn_{\labi} = \vti & \forall \vx \in \Gamma_{\mathrm{I}}(t), \\
+\vsigma\cdot \vn_{\labn} = 0 & \forall \vx \in \boun, \\
+\vu(\vx, \,0) = \vu_{\mathrm{0}}(\vx) & \forall \vx \in \domf, 
+\end{array}
+\right.
+\end{equation}
+with $\div \vu_0 = 0$, $\rhof$ the fluid density, $\vn_{\labi}$ the outward normal to the solid surface, $\vn_{\labn}$ the outward normal to the domain boundary on which Neumann condition is imposed,
+
+!! ?? \emph{$\vu_{\mathrm{D}}$ should satisfy the compatibility consition due to $\div \vu =0$} !! ??
+
+For an incompressible fluid the divergence-free constraint gives rise to pressure in the fluid. The stress tensor is then given by
+ \begin{equation}
+ \label{eq:stress_tensor}
+ \vsigma = -p\Id + \vec \tau
+ \end{equation}
+%
+with $\vec \tau(\vu) \triangleq 2\,\nu\, \D \vu$ the viscous stress (newtonian fluid), $\D \vu = \frac{1}{2}\left(\grad \vu + \grad \vu ^\T \right)$.
+
+\subsubsection{Governing equations for the solid}
+%
+represented in terms of translational and angular velocities using
+Newton's second law. In the present formulation, we treat the particle as a fluid subjected to an additional rigidity constraint. The governing equations for the solid motion are then given
+by
+%
+\begin{equation}
+\left\{
+\begin{array}{ll}
+\left(\dt{(\rhos\, \vu)} + \grad(\rhos\, \vu)\cdot \vu\right)= \div \vsigma + \rhos\, \vg & \forall \vx \in \doms(t), \\
+\div \vu = 0 & \forall \vx \in \doms(t), \\
+\D \vu = 0 & \forall \vx \in \doms(t), \\
+\vsigma\cdot \vn_{\labi} = \vti & \forall \vx \in \Gamma_{\mathrm{I}}(t), \\
+\vsigma\cdot \vn_{\labn} = \vti & \forall \vx \in \Gamma_{\mathrm{I}}(t), \\
+\vu(\vx, \,0) = \vu_{\mathrm{0}}(\vx) & \forall \vx \in \doms, 
+\end{array}
+\right.
+\end{equation}
+%
+\subsection{Weak form}
+%
+
+%
+\section{Uzawa algorithm}
+%
+Objective: Find the solution of a saddle point problem:
+%
+
+%
+\part{OLD}
+%
+%
+%
+\section{\cite{patankar2000new}}
+%
+\paragraph{Abstract}
+
+A Lagrange-multiplier-based Fictitious-domain method (DLM).
+
+Direct numerical simulation of rigid particulate flows in a Newtonian fluid.
+
+The flow in the particle domain is constrained to be a rigid body motion by using a well-chosen field of Lagrange multipliers. 
+
+The fluid particle motion is treated implicitly using a combined weak formulation in which the mutual forces cancel. 
+
+When the density of the  fluid and the particles match, this formulation together with the above equation of constraint gives an algorithm that requires extra conditions on the space of the distributed Lagrange multipliers. 
+
+In view of the above issue a new formulation of the DLM for particulate flow is presented in this paper. 
+
+Here, the deformation rate tensor within the particle domain is constrained to be zero at points in the fluid occupied by rigid solids. 
+
+Then the state of stress inside a rigid body depends on the velocity field similar to pressure in an incompressible  fluid. 
+
+\subsection{Constraint of rigid body motion}
+
+\begin{equation}
+\label{eq:rigid_body}
+\vus = \vug + \vec \omega\times (\vx-\vxg)
+\end{equation}
+
+with $\vus$ the velocity of the fluid in the solid domain; $\vug$ and $\omega$ the translational and angular velocities of the solid; $\vxg$ the center of mass of the particle.
+
+\subsection{Intro}
+%
+Glowinski et al. (1999, 1998) presented a Lagrange-multiplier-based fictitious-domain method (DLM) for the direct numerical simulation of the motion of large numbers of rigid particles in a Newtonian fluid
+
+The fluid/particle motion is treated implicitly using a combined weak formulation of Hesla (1991) in which the mutual forces cancel. 
+
+This formulation and the above equation of constraint were the key features of the DLM method of Glowinski et al. (1999). They stated that the resulting algorithm as presented by them could not be used directly if the particles were neutrally buoyant; however, it could be made to work by adding extra conditions to the space of the distributed Lagrange multipliers.
+
+Extension of this formulation to three dimensions with irregularly shaped bodies requires that another term ($\vec \omega \times J \vec \omega$, where $J$ is the moment of inertia tensor) must be added to the angular momentum equation for particles in the coupled particle/fluid system of equation. 
+
+In this paper, we address the above issues by presenting a new DLM formulation for particulate flow. 
+
+It was recognized by Hesla (1997) that, in the DLM method of Glowinski et al. (1999) the translational and angular velocities of the particles appear as "extra unknowns", in some sense, in addition to the velocity field $ \vec u$ inside the particles, even though they are completely determined in terms of $ \vec u$: Hence, he suggested that $ \vec U$ and $ \vec \omega$ be eliminated as independent unknowns at the outset by replacing them by the respective classical mechanical integral expressions in terms of $ \vec u$: This suggestion if implemented gives rise to an algorithm that can be used in the density matched case without extra conditions on the space of the distributed Lagrange multipliers. In this paper we present an approach in which the deformation rate tensor within the particle domain is constrained to be zero in order to impose the rigid body motion. This eliminates $ \vec U$ and $ \vec \omega$ as variables from the coupled system of equations and at the same time is much easier to implement, numerically, compared to the suggestion of Hesla (1997). The resulting algorithm in our approach requires no extra conditions for the density matched case. Physical interpretation of the formulation will be explained in the next section. We will then present some details of the numerical
+implementation of the new formulation. We implemented this formulation by modifying the DLM code for two-dimensional particulate flows developed by Singh et al. (1999). Finally, we
+will verify the code through some known test cases.
+
+
+%
+\section{Problem statement}
+% 
+\subsection{Navier-Stokes}
+%
+On considère les équations de Navier-Stokes pour un fluide newtonien incompressible en état transitoire sur les domaines spatial $\Omega\subset\RR^{\nc}$ ($\nc$ nombre de composantes spatiales) et temporel $\spacename T\subset\RR$:
+%
+\begin{equation}
+\label{eq:NS}
+\begin{array}{l}
+\frac{\d( \rho\, \vu)}{\d t} + \grad (\rho\, \vu) \cdot \vu - \div \,\vsigma = \vf; \\
+\vu(\vx, t) = u_{\spacename{D}}(\vx, t), \quad \forall \, \vx \in \Gamma_{\spacename D}\subseteq \partial\Omega;  \\
+\vec n \cdot \sigma(\vx, t) = \sigma_{\spacename N}(\vx, t), \quad \forall \, \vx \in \Gamma_{\spacename N}\subseteq \partial\Omega;  \\
+\vu(\vx, 0) = \vu_0(\vx), \quad \forall \vx \in \Omega.
+\end{array}
+\end{equation}
+%
+%
+\begin{itemize}
+\item $\vu\in \spacename{V} \subset \spacename{H}^1(\Omega, \spacename{T}) = \{\vu: \Omega\times T \rightarrow \RR^\nc\,;\; \vu\in \spacename L_2(\Omega, \spacename T), \grad \vu\in \spacename L_2(\Omega, \spacename T) \}$,
+\item $\vf \in \spacename{L}^2(\Omega, \spacename{T})$,
+\item $\vsigma(\vx, t) = 2\,\nu(\vx) \, \epsilon\big(\vu(\vx, t)\big) - \Id\cdot p(\vx, t)$ (fluide newtonien),
+\item $\epsilon(u) = \frac{1}{2}\,\left(\grad\,u + \grad\, u^\T\right)$ (Vitesse de déformation),
+\item $\vec n$ la normale locale au bord $\partial \Omega$ du domaine $\Omega \subseteq \RR^{\nc}$, 
+\end{itemize}
+%
+%
+\subsection{Level-Set}
+%
+On introduit les phases solide $\Omega_s$ et fluide $\Omega_f = \Omega\setminus\Omega_s$, ainsi qu'une \emph{fonction de niveau} (level-set):
+%
+\begin{equation}
+\chi(\vx)\left\{
+\begin{array}{lll}
+> 0 & \mbox{~~si~~} & \vx\in \Omega_s, \\
+= 0& \mbox{~~si~~} & \vx\in \partial\Omega_s, \\
+< 0& \mbox{~~si~~} & \vx\in \Omega_f.
+\end{array}
+\right.
+\end{equation}
+%
+Dans la suite on prendra $\chi\big(\vx, t\big)=\Q(\vx, \theta(t)\big)$ avec $\Q$ défini en (\ref{eq:Q(x)}).
+%
+Équation d'évolution de la \textit{level-set} (mouvement imposé, description eulerienne):
+\begin{equation}
+\dt{\chi} = \dt{\Q} =\nabla_{\vx}\Q\cdot\underbrace{\dt \vx }_{=\vec 0}+ \nabla_\theta\Q\cdot\dt\theta = \nabla_\theta\Q \cdot \omega
+\end{equation}
+%
+avec $\omega = \dt \theta$ la vitesse de rotation imposée.
+%
+%
+\subsection{Multiphasique}
+%
+On introduit une \emph{fonction signe lissée}:
+%
+\begin{equation}
+\label{eq:se}
+\se: \RR\ni x \mapsto \se(x) \triangleq \tanh\left(\frac{\pi \, x}{\epsilon} \right) \in [-1, 1].
+\end{equation}
+%
+%
+et une \emph{fonction de Heaviside lissée}:
+%
+\begin{equation}
+\label{eq:he}
+\he: \RR\ni x \mapsto \he(x) \triangleq \frac{1 + \se(x)}{2} \in [0, 1].
+\end{equation}
+%
+%
+de gradient:
+%
+\begin{equation}
+\label{eq:grad_he}
+\grad \he(x) = \frac{\pi}{2\,\epsilon}\,\cosh^{-2}\left(\frac{\pi\, x}{\epsilon}\right)
+\end{equation}
+$$\rho(\vx, t)  = \rho_f +  \underbrace{(\rho_s- \rho_f)}_{\rho_\Delta}\,\he\big(\chi(\vx, t)\big).$$
+$$\nu(\vx, t)  = \nu_f +  \underbrace{(\nu_s- \nu_f)}_{\nu_\Delta}\,\he\big(\chi(\vx, t)\big).$$
+
+Quantité de mouvement: $\vec m(\vx, t) = \rho(\vx, t)\,\vu(\vx, t)$.
+$$ \dt{\vec m } =\rho_\Delta\,\grad_{\chi}\he(\chi)\,\dt{\chi}\, \vu + \big(\rho_f + \rho_\Delta\,\he(\chi)\big)\,\dt{\vu}.$$
+
+$$ \grad_{\vx} {\vec m} = \rho_\Delta\,\grad_{\chi}\he(\chi)\, \vu \otimes \grad_{\vx} {\chi}  + \big(\rho_f + \rho_\Delta\,\he(\chi)\big)\, \grad_{\vx} {\vu}.$$
+
+$$ \grad_{\vx} {\vec m}\cdot \vu = \rho_\Delta\,\grad_{\chi}\he(\chi)\,\vu \otimes \grad_{\vx} {\chi} \cdot \vu  + \big(\rho_f + \rho_\Delta\,\he(\chi)\big)\, \grad_{\vx} {\vu} \cdot \vu.$$
+
+\begin{table}[!h]
+\centering
+\begin{tabular}{lll}
+\hline
+Symbol & Description & Valeur (eau)\\
+\hline
+$\rho$ & masse volumique & 998 (kg.m$^3$)\\
+$\nu$ & viscosité dynamique & $1.002\times 10^{-3}$ (Pa.s)\\
+\hline
+\end{tabular}
+\caption{\label{tab:parametres_physiques} Paramètres physiques intervenant dans (\ref{eq:NS})}
+\end{table}
+%
+%
+\section{POD}
+%
+%
+Soit $(\vphi_i)_{1\leq i \leq N_\Phi}$ la base pod associée au champ de vitesse fluctuant, \ie
+$$u = \bu + \tu \simeq \overline{u} + \alpha_i\,\vphi_i$$
+%
+avec $(\alpha_i)_{1 \leq i \leq N_\Phi}$ les coefficients temporels associés et $(\vphi_i)_{1\leq i \leq N_\Phi}$ la base pod associée au champ fluctuant de distance à l'ellipse, \ie
+%
+$$\chi = \overline{\chi} + \widetilde \chi \simeq \overline{\chi} + \beta_i\,\psi_i$$
+%
+$$\Ie\big(\chi(x)\big) = \gamma_i \, \xi_i$$
+%
+%
+\section{DEIM for the charateristic function of the solid,}
+%
+%
+%
+Here we consider the \emph{Discrete Empirical Interpolation} \cite{barrault2004empirical, chaturantabut2010nonlinear} of the characteristic function $\he(\chi)\in \RR^{N_x}$. The ingredients are:
+\begin{itemize}
+\item a POD basis for the argument $\ls \simeq \bls + \tls = \bls + \Psi_i\,\beta_i$ with $\Psi\in\RR^{N_x \times N_\Psi}$
+\item a POD basis for the evaluation $\he(\chi) \simeq \Lambda_i \, \gamma_i$ with $\Lambda\in\RR^{N_x \times N_\Lambda}$
+\item a DEIM Projector $P\in\RR^{N_x \times N_\Lambda}$
+\end{itemize}
+%
+The coefficients $(\gamma_i)_{1\leq i \leq N_\Lambda}$ are determined from
+$$P^\T \cdot \he(\chi) \simeq P^\T \cdot \Lambda \cdot \vec{\gamma} \Rightarrow \he(\chi) \simeq \Lambda \cdot \left(P^\T \cdot \Lambda\right)^{-1}\cdot P^\T \cdot \he(\chi) $$
+%
+Now, we introduced the reduced order characteristic function for the solid  as 
+$$ \RR^{N_\Lambda} \ni \tihe(\vec\beta) \triangleq P^\T \cdot \he(\bls + \Psi\cdot\vec\beta) \equiv 
+\left( 
+\begin{array}{c}
+\he\Big(P_1^\T \cdot (\bls + \Psi\cdot\vec\beta)\Big) \\
+\vdots \\
+\he\Big(P_{N_\Lambda}^\T \cdot (\bls + \Psi\cdot\vec\beta)\Big)
+\end{array} 
+\right)
+=
+\left( 
+\begin{array}{c}
+\th_1(\vec \beta) \\
+\vdots \\
+\th_{N_\Lambda}(\vec \beta) \\
+\end{array} 
+\right)
+$$
+%
+so that 
+$$\he\big(\chi(\vx, t)\big) \simeq \sum_{k=1}^{N_\Lambda} \ell_k(\vx) \cdot \th_k\big(\vec \beta(t)\big) $$
+%
+with
+$$\RR^{N_x \times N_\Lambda}\ni\mat L \triangleq \Lambda \cdot \left(P^\T \cdot \Lambda\right)^{-1}=[\ell_1,\cdots \ell_{N_\Lambda}]$$
+%
+%
+\section{Résidu}
+%
+Quantité de mouvement approximée: 
+\begin{eqnarray}
+\vec m(\vx, t) &\simeq &\Big(\rho_f + \rho_\Delta\, \sum_{k=1}^{N_\Lambda} \ell_k(\vx) \, \th_k\big(\vec \beta(t)\big) \Big)\, \Big(\bu(\vx) + \sum_{j=1}^{N_\Phi} \vphi_j(\vx)\,\alpha_j(t) \Big) \\
+&\simeq & \rho_f \, \bu(\vx) + \rho_f \, \sum_{j=1}^{N_\Phi} \vphi_j(\vx)\,\alpha_j(t)  + \\
+&+& \rho_\Delta\, \sum_{k=1}^{N_\Lambda}\bu(\vx) \ell_k(\vx) \th_k\big(\vec \beta(t)\big)  + \\
+&+& \rho_\Delta\, \sum_{j=1}^{N_\Phi} \,\sum_{k=1}^{N_\Lambda} \vphi_j(\vx)\, \ell_k(\vx) \,\alpha_j(t)\, \th_k\big(\vec \beta(t)\big).
+\end{eqnarray}
+\begin{eqnarray}
+ \dt{\vec m } 
+&\simeq & \rho_f \, \sum_{j=1}^{N_\Phi} \vphi_j\,\dt{\alpha_j} \\
+&+& \rho_\Delta\,\sum_{k=1}^{N_\Lambda}\, \bu  \, \ell_k \, \grad_{\vec \beta}\th_k \big(\vec \beta\big)\,\dt{\vec \beta}\\
+&+& \rho_\Delta\,\sum_{j=1}^{N_\Phi} \sum_{k=1}^{N_\Lambda} \vphi_j\, \ell_k \Big(\alpha_j \,  \grad_{\vec \beta}\th_k \big(\vec \beta\big)\,\dt{\vec \beta}+ \dt{\alpha_j}\, \th_k(\vec \beta)\Big) 
+\end{eqnarray}
+%
+\begin{eqnarray}
+\grad_{\vx}\vec m &\simeq & \rho_f \, \grad_{\vx}\bu + \rho_f \, \sum_{j=1}^{N_\Phi} \grad_{\vx} \vphi_j\,\alpha_j  + \\
+&+& \rho_\Delta\, \sum_{k=1}^{N_\Lambda}\Big( \ell_k \, \grad_{\vx}\bu+ \bu\otimes\grad_{\vx}\ell_k\Big) \th_k (\vec \beta)  + \\
+&+& \rho_\Delta\, \sum_{j=1}^{N_\Phi} \,\sum_{k=1}^{N_\Lambda} 
+\Big( \ell_k \, \grad_{\vx}\vphi_j+ \vphi_j \otimes\grad_{\vx}\ell_k\Big) \,\alpha_j \, \th_k (\vec \beta).
+\end{eqnarray}
+%
+\begin{eqnarray}
+\grad_{\vx}\vec m \cdot \vu &\simeq &\rho_f \, \grad_{\vx}\bu \cdot \bu + \rho_f \, \sum_{j=1}^{N_\Phi} \Big(\grad_{\vx} \vphi_j\cdot \bu + \grad_{\vx}\bu\cdot \vphi_j \Big)\,\alpha_j  + \\
+&+& \rho_\Delta\, \sum_{k=1}^{N_\Lambda}\Big( \ell_k \, \grad_{\vx}\bu+ \bu\otimes\grad_{\vx}\ell_k\Big)\cdot \bu \, \th_k (\vec \beta)  + \\
+&+& \rho_\Delta\, \sum_{j=1}^{N_\Phi} \,\sum_{k=1}^{N_\Lambda} 
+\left(\Big( \ell_k \, \grad_{\vx}\vphi_j+ \vphi_j \otimes\grad_{\vx}\ell_k\Big)\cdot \bu +  \Big( \ell_k \, \grad_{\vx}\bu+ \bu\otimes\grad_{\vx}\ell_k\Big) \cdot \vphi_j \right)\,\alpha_j \, \th_k (\vec \beta) + \\
+&+&  \rho_f \, \sum_{j=1}^{N_\Phi} \sum_{k=1}^{N_\Phi}  \grad_{\vx} \vphi_j\cdot \vphi_k \,\alpha_j \,\alpha_k  + \\
+&+& \rho_\Delta\, \sum_{j=1}^{N_\Phi} \,\sum_{k=1}^{N_\Phi} \sum_{l=1}^{N_\Lambda}
+\Big( \ell_l \, \grad_{\vx}\vphi_j+ \vphi_j \otimes\grad_{\vx}\ell_l\Big)\cdot \vphi_k \, \alpha_j \, \alpha_k \,\th_l (\vec \beta).
+\end{eqnarray}
+%
+\section{Projection sur la base POD}
+%
+\begin{equation}
+ \prodscal{\dt{\vec m}}{\vphi_i} +   \prodscal{\grad_{\vx}\vec m \cdot \vu }{\vphi_i} -\prodscal{\div \,\vsigma}{\vphi_i} =  \prodscal{\vec f}{\vphi_i} + \prodscal{\frac{\he(\chi)}{\varepsilon}(\vu-\vu_{s})}{\vphi_i}
+\end{equation}
+%
+\begin{eqnarray}
+\label{eq:dtm_phii}
+ \prodscal{\dt{\vec m}}{\vphi_i} & \simeq &  
+\rho_f \, \sum_{j=1}^{N_\Phi} \prodscal{\vphi_j}{\vphi_i}\dt{\alpha_j} \\
+&+& \rho_\Delta\,\sum_{k=1}^{N_\Lambda}\,  \prodscal{\ell_k \, \bu}{\vphi_i}\, \grad_{\vec \beta}\th_k \big(\vec \beta\big)\,\dt{\vec \beta}\\
+&+& \rho_\Delta\,\sum_{j=1}^{N_\Phi} \sum_{k=1}^{N_\Lambda}  \prodscal{\ell_k\,\vphi_j}{\vphi_i} \Big(\alpha_j \,  \grad_{\vec \beta}\th_k \big(\vec \beta\big)\,\dt{\vec \beta}+ \dt{\alpha_j}\, \th_k(\vec \beta)\Big) 
+\end{eqnarray}
+
+\begin{eqnarray}
+\label{eq:convection_phii}
+ \prodscal{\grad_{\vx}\vec m \cdot \vu }{\vphi_i}&\simeq & \rho_f \, \prodscal{\grad_{\vx}\bu \cdot \bu}{\vphi_i} + \rho_f \, \sum_{j=1}^{N_\Phi}  \prodscal{\grad_{\vx} \vphi_j\cdot \bu + \grad_{\vx}\bu\cdot \vphi_j }{\vphi_i}
+\,\alpha_j  + \\
+&+& \rho_\Delta\, \sum_{k=1}^{N_\Lambda}\prodscal{\Big( \ell_k \, \grad_{\vx}\bu+ \bu\otimes\grad_{\vx}\ell_k\Big)\cdot \bu}{\vphi_i}  \, \th_k (\vec \beta)  + \\
+&+& \rho_\Delta\, \sum_{j=1}^{N_\Phi} \,\sum_{k=1}^{N_\Lambda} 
+ \prodscal{\Big( \ell_k \, \grad_{\vx}\vphi_j+ \vphi_j \otimes\grad_{\vx}\ell_k\Big)\cdot \bu +  \Big( \ell_k \, \grad_{\vx}\bu+ \bu\otimes\grad_{\vx}\ell_k\Big) \cdot \vphi_j }{\vphi_i}\,\alpha_j \, \th_k (\vec \beta) + \\
+&+&  \rho_f \, \sum_{j=1}^{N_\Phi} \sum_{k=1}^{N_\Phi}  \prodscal{ \grad_{\vx} \vphi_j\cdot \vphi_k }{\vphi_i}\,\alpha_j \,\alpha_k  + \\
+&+& \rho_\Delta\, \sum_{j=1}^{N_\Phi} \,\sum_{k=1}^{N_\Phi} \sum_{l=1}^{N_\Lambda}
+\prodscal{\Big( \ell_l \, \grad_{\vx}\vphi_j+ \vphi_j \otimes\grad_{\vx}\ell_l\Big)\cdot \vphi_k }{\vphi_i}\, \alpha_j \, \alpha_k \,\th_l (\vec \beta).
+\end{eqnarray}
+%
+%
+\begin{eqnarray}
+ \prodscal{\div\vsigma }{\vphi_i}
+ &=& \int_\Omega \div(\vsigma\cdot\vphi_i)\d\Omega - \int_\Omega\vsigma:\grad \vphi_i \d \Omega \\
+&=&\int_\Gamma \vsigma\cdot\vphi_i\cdot \operatorname n \d \Gamma- \int_\Omega\vsigma:\grad \vphi_i \d \Omega\\
+&=&\underbrace{\int_{\Gamma_D} \vsigma\cdot\vphi_i\cdot \operatorname n \d \Gamma}_{\vphi_i\vert_{\Gamma_D} =0}+\underbrace{\int_{\Gamma_\sigma} \vsigma\cdot\vphi_i\cdot \operatorname n \d \Gamma}_{\vsigma\cdot\operatorname n\vert_{\Gamma_\sigma} =0}- \int_\Omega\trace{\vsigma\cdot\grad \vphi_i}\d \Omega\\
+\trace{\vsigma\cdot\grad \vphi_i }&=& \trace{\nu \D{\bu}\cdot\grad \vphi_i} + \sum_{j =1}^{N_\Phi}\alpha_j\,\trace{\nu \D{\vphi_j}\cdot\grad \vphi_i} - \underbrace{\trace{p\,\Id\cdot\grad \vphi_i}}_{=p\,\div \vphi_i = 0}\\
+\end{eqnarray}
+%
+%
+\begin{eqnarray}
+\label{eq:div_sigma_phii}
+-\prodscal{\div \,\vsigma}{\vphi_i} &=& \nu_f\,\int_\Omega\trace{\D{\bu}\cdot\grad \vphi_i}\d\Omega + \\
+&+& \nu_{\Delta}\sum_{k=1}^{N_\Lambda} \th_k(\beta) \int_\Omega\ell_k \, \trace{\D{\bu}\cdot\grad \vphi_i}\d\Omega + \\
+ &+& \nu_f\,\sum_{j =1}^{N_\Phi}\alpha_j\,\int_\Omega \trace{\D{\vphi_j}\cdot\grad \vphi_i} \d \Omega + \\
+ &+&  \nu_\Delta\,\sum_{j=1}^{N_\Phi} \sum_{k=1}^{N_\Lambda}  \alpha_j\,\th_k(\beta) \int_\Omega \ell_k \, \trace{\D{\vphi_j}\cdot\grad \vphi_i} \d \Omega \\
+\end{eqnarray}
+%
+%
+\begin{equation}
+\label{eq:us}
+\vu_s(\vx) 
+= 
+\omega\, \underbrace{\parallel \vx \parallel_2\,
+\left(
+\begin{array}{r}
+-\sin\big(\theta(\vx)\big) \\
+ \cos\big(\theta(\vx)\big)
+\end{array}
+\right)}_{\vec d (\vx)} ; \qquad \theta(\vx) = \operatorname{atan}\left( \frac{x_2}{x_1}\right)
+\end{equation}
+%
+\begin{eqnarray}
+\label{eq:penalite_phii}
+\prodscal{\frac{\he(\chi)}{\varepsilon}(\vu-\vu_{s})}{\vphi_i}&=&\frac{1}{\varepsilon} \sum_{k=1}^{N_{\Lambda}}\prodscal{\ell_k\,\bu}{\vphi_i} \,\th_k (\vec \beta)  \\ 
+&+& \frac{1}{\varepsilon} \sum_{j=1}^{N_\Phi}\sum_{k=1}^{N_{\Lambda}}\prodscal{\ell_k\,\vphi_j}{\vphi_i} \alpha_j\,\th_k (\vec \beta) - \\
+&-& \frac{\omega}{\varepsilon} \sum_{k=1}^{N_{\Lambda}}\prodscal{\ell_k\,\vec d}{\vphi_i} \,\th_k (\vec \beta) 
+\end{eqnarray}
+%
+%
+%
+\newpage
+\paragraph{Finalement}
+%
+\begin{equation}
+\begin{array}{rcl}
+0 &=&  \prodscal{\dt{\vec m}}{\vphi_i} +   \prodscal{\grad_{\vx}\vec m \cdot \vu }{\vphi_i} -\prodscal{\div \,\vsigma}{\vphi_i} - \prodscal{\vec f}{\vphi_i} - \prodscal{\frac{\he(\chi)}{\varepsilon}(\vu-\vu_{s})}{\vphi_i} \\
+&=& \rho_f \, \sum_{j=1}^{N_\Phi} \prodscal{\vphi_j}{\vphi_i}\dt{\alpha_j} \\
+&+& \rho_\Delta\,\sum_{k=1}^{N_\Lambda}\,  \prodscal{\ell_k \, \bu}{\vphi_i}\, \grad_{\vec \beta}\th_k \big(\vec \beta\big)\,\dt{\vec \beta}\\
+&+& \rho_\Delta\,\sum_{j=1}^{N_\Phi} \sum_{k=1}^{N_\Lambda}  \prodscal{\ell_k\,\vphi_j}{\vphi_i} \Big(\alpha_j \,  \grad_{\vec \beta}\th_k \big(\vec \beta\big)\,\dt{\vec \beta}+ \dt{\alpha_j}\, \th_k(\vec \beta)\Big) + \\
+&+& \rho_f \, \prodscal{\grad_{\vx}\bu \cdot \bu}{\vphi_i} + \rho_f \, \sum_{j=1}^{N_\Phi}  \prodscal{\grad_{\vx} \vphi_j\cdot \bu + \grad_{\vx}\bu\cdot \vphi_j }{\vphi_i}
+\,\alpha_j  + \\
+&+& \rho_\Delta\, \sum_{k=1}^{N_\Lambda}\prodscal{\Big( \ell_k \, \grad_{\vx}\bu+ \bu\otimes\grad_{\vx}\ell_k\Big)\cdot \bu}{\vphi_i}  \, \th_k (\vec \beta)  + \\
+&+& \rho_\Delta\, \sum_{j=1}^{N_\Phi} \,\sum_{k=1}^{N_\Lambda} 
+ \prodscal{\Big( \ell_k \, \grad_{\vx}\vphi_j+ \vphi_j \otimes\grad_{\vx}\ell_k\Big)\cdot \bu +  \Big( \ell_k \, \grad_{\vx}\bu+ \bu\otimes\grad_{\vx}\ell_k\Big) \cdot \vphi_j }{\vphi_i}\,\alpha_j \, \th_k (\vec \beta) + \\
+&+&  \rho_f \, \sum_{j=1}^{N_\Phi} \sum_{k=1}^{N_\Phi}  \prodscal{ \grad_{\vx} \vphi_j\cdot \vphi_k }{\vphi_i}\,\alpha_j \,\alpha_k  + \\
+&+& \rho_\Delta\, \sum_{j=1}^{N_\Phi} \,\sum_{k=1}^{N_\Phi} \sum_{l=1}^{N_\Lambda}
+\prodscal{\Big( \ell_l \, \grad_{\vx}\vphi_j+ \vphi_j \otimes\grad_{\vx}\ell_l\Big)\cdot \vphi_k }{\vphi_i}\, \alpha_j \, \alpha_k \,\th_l (\vec \beta) + \\
+&+& \nu_f\,\int_\Omega\trace{\D{\bu}\cdot\grad \vphi_i}\d\Omega + \\
+&+& \nu_{\Delta}\sum_{k=1}^{N_\Lambda} \th_k(\beta) \int_\Omega\ell_k \, \trace{\D{\bu}\cdot\grad \vphi_i}\d\Omega + \\
+ &+& \nu_f\,\sum_{j =1}^{N_\Phi}\alpha_j\,\int_\Omega \trace{\D{\vphi_j}\cdot\grad \vphi_i} \d \Omega + \\
+ &+&  \nu_\Delta\,\sum_{j=1}^{N_\Phi} \sum_{k=1}^{N_\Lambda}  \alpha_j\,\th_k(\beta) \int_\Omega \ell_k \, \trace{\D{\vphi_j}\cdot\grad \vphi_i} \d \Omega -\\
+&-&\prodscal{\vec f}{\vphi_i}- \\
+&-&\frac{1}{\varepsilon} \sum_{k=1}^{N_{\Lambda}}\prodscal{\ell_k\,\bu}{\vphi_i} \,\th_k (\vec \beta)  \\ 
+&-& \frac{1}{\varepsilon} \sum_{j=1}^{N_\Phi}\sum_{k=1}^{N_{\Lambda}}\prodscal{\ell_k\,\vphi_j}{\vphi_i} \alpha_j\,\th_k (\vec \beta) + \\
+&+& \frac{\omega}{\varepsilon} \sum_{k=1}^{N_{\Lambda}}\prodscal{\ell_k\,\vec d}{\vphi_i} \,\th_k (\vec \beta).
+\end{array}
+\end{equation}
+%
+\begin{equation}
+\begin{array}{rcl}
+0 &=& \textcolor{orange}{\rho_f \, \sum_{j=1}^{N_\Phi} \prodscal{\vphi_j}{\vphi_i}\dt{\alpha_j}} \\
+&+&\textcolor{cyan}{ \rho_\Delta\,\sum_{k=1}^{N_\Lambda}\,  \prodscal{\ell_k \, \bu}{\vphi_i}\, \grad_{\vec \beta}\th_k \big(\vec \beta\big)\,\dt{\vec \beta}}\\
+&+& \textcolor{Brown}{\rho_\Delta\,\sum_{j=1}^{N_\Phi} \sum_{k=1}^{N_\Lambda}  \prodscal{\ell_k\,\vphi_j}{\vphi_i} \Big(\alpha_j \,  \grad_{\vec \beta}\th_k \big(\vec \beta\big)\,\dt{\vec \beta}+ \dt{\alpha_j}\, \th_k(\vec \beta)\Big)} + \\
+&+& \textcolor{OliveGreen}{\rho_f \, \prodscal{\grad_{\vx}\bu \cdot \bu}{\vphi_i}} + \textcolor{purple}{\rho_f \, \sum_{j=1}^{N_\Phi}  \prodscal{\grad_{\vx} \vphi_j\cdot \bu + \grad_{\vx}\bu\cdot \vphi_j }{\vphi_i} \,\alpha_j}  + \\
+&+& \textcolor{blue}{\rho_\Delta\, \sum_{k=1}^{N_\Lambda}\prodscal{\Big( \ell_k \, \grad_{\vx}\bu+ \bu\otimes\grad_{\vx}\ell_k\Big)\cdot \bu}{\vphi_i}  \, \th_k (\vec \beta)}  + \\
+&+& \textcolor{red}{\rho_\Delta\, \sum_{j=1}^{N_\Phi} \,\sum_{k=1}^{N_\Lambda} 
+ \prodscal{\Big( \ell_k \, \grad_{\vx}\vphi_j+ \vphi_j \otimes\grad_{\vx}\ell_k\Big)\cdot \bu +  \Big( \ell_k \, \grad_{\vx}\bu+ \bu\otimes\grad_{\vx}\ell_k\Big) \cdot \vphi_j }{\vphi_i}\,\alpha_j \, \th_k (\vec \beta)} + \\
+&+&  \textcolor{Emerald}{\rho_f \, \sum_{j=1}^{N_\Phi} \sum_{k=1}^{N_\Phi}  \prodscal{ \grad_{\vx} \vphi_j\cdot \vphi_k }{\vphi_i}\,\alpha_j \,\alpha_k}  + \\
+&+& \textcolor{Rhodamine}{\rho_\Delta\, \sum_{j=1}^{N_\Phi} \,\sum_{k=1}^{N_\Phi} \sum_{l=1}^{N_\Lambda}
+\prodscal{\Big( \ell_l \, \grad_{\vx}\vphi_j+ \vphi_j \otimes\grad_{\vx}\ell_l\Big)\cdot \vphi_k }{\vphi_i}\, \alpha_j \, \alpha_k \,\th_l (\vec \beta)} + \\
+&+& \textcolor{OliveGreen}{\nu_f\,\int_\Omega\trace{\D{\bu}\cdot\grad \vphi_i}\d\Omega} + \\
+&+&\textcolor{blue}{ \nu_{\Delta}\sum_{k=1}^{N_\Lambda} \th_k(\beta) \int_\Omega\ell_k \, \trace{\D{\bu}\cdot\grad \vphi_i}\d\Omega} + \\
+ &+& \textcolor{purple}{\nu_f\,\sum_{j =1}^{N_\Phi}\alpha_j\,\int_\Omega \trace{\D{\vphi_j}\cdot\grad \vphi_i} \d \Omega} + \\
+ &+&  \textcolor{red}{\nu_\Delta\,\sum_{j=1}^{N_\Phi} \sum_{k=1}^{N_\Lambda}  \alpha_j\,\th_k(\beta) \int_\Omega \ell_k \, \trace{\D{\vphi_j}\cdot\grad \vphi_i} \d \Omega} -\\
+&-&\textcolor{OliveGreen}{\prodscal{\vec f}{\vphi_i}}- \\
+&-&\textcolor{blue}{\frac{1}{\varepsilon} \sum_{k=1}^{N_{\Lambda}}\prodscal{\ell_k\,\bu}{\vphi_i} \,\th_k (\vec \beta)}  \\ 
+&-& \textcolor{red}{\frac{1}{\varepsilon} \sum_{j=1}^{N_\Phi}\sum_{k=1}^{N_{\Lambda}}\prodscal{\ell_k\,\vphi_j}{\vphi_i} \alpha_j\,\th_k (\vec \beta)} + \\
+&+&\textcolor{blue}{ \frac{\omega}{\varepsilon} \sum_{k=1}^{N_{\Lambda}}\prodscal{\ell_k\,\vec d}{\vphi_i} \,\th_k (\vec \beta)}.
+\end{array}
+\end{equation}
+%
+\begin{eqnarray}
+\textcolor{OliveGreen}{F_i} &=& \textcolor{OliveGreen}{\rho_f \, \prodscal{\grad_{\vx}\bu \cdot \bu}{\vphi_i}} + \textcolor{OliveGreen}{\nu_f\,\int_\Omega\trace{\D{\bu}\cdot\grad \vphi_i}\d\Omega}-\textcolor{OliveGreen}{\prodscal{\vec f}{\vphi_i}} \\
+\\
+\textcolor{orange}{\mat A}_{ij} &=&\textcolor{orange}{\rho_f \, \underbrace{\prodscal{\vphi_j}{\vphi_i}}_{\simeq \delta_{ij}}} \\
+\\
+\textcolor{purple}{\mat B}_{ij} &=& \textcolor{purple}{\rho_f \,\prodscal{\grad_{\vx} \vphi_j\cdot \bu + \grad_{\vx}\bu\cdot \vphi_j }{\vphi_i}} + \textcolor{purple}{\nu_f\,\int_\Omega \trace{\D{\vphi_j}\cdot\grad \vphi_i} \d \Omega} \\
+\\
+\textcolor{cyan}{\mat C}_{ij} &=& \textcolor{cyan}{\rho_\Delta\,\prodscal{\ell_j \, \bu}{\vphi_i}}
+\\
+\\
+\textcolor{blue}{\mat D}_{ij} &=&  \textcolor{blue}{ \frac{\omega}{\varepsilon}\prodscal{\ell_j\,\vec d}{\vphi_i}}-\textcolor{blue}{\frac{1}{\varepsilon} \prodscal{\ell_j\,\bu}{\vphi_i}}+ \\
+&+& \textcolor{blue}{\rho_\Delta\,\prodscal{\Big( \ell_j \, \grad_{\vx}\bu+ \bu\otimes\grad_{\vx}\ell_j\Big)\cdot \bu}{\vphi_i}}
++ \\
+&+& \textcolor{blue}{ \nu_{\Delta} \int_\Omega\ell_j \, \trace{\D{\bu}\cdot\grad \vphi_i}\d\Omega}. \\
+\\
+\textcolor{Emerald}{\mat E}_{ijk} &=&  \textcolor{Emerald}{\rho_f \, \prodscal{ \grad_{\vx} \vphi_j\cdot \vphi_k }{\vphi_i}}
+\\
+\\
+\textcolor{red}{\mat G}_{ijk} &=& \textcolor{red}{\rho_\Delta\,  \prodscal{\Big( \ell_j \, \grad_{\vx}\vphi_j+ \vphi_j \otimes\grad_{\vx}\ell_k\Big)\cdot \bu}{\vphi_i}} +  \\
+&+& \textcolor{red}{\rho_\Delta\,  \prodscal{\Big( \ell_k \, \grad_{\vx}\bu+ \bu\otimes\grad_{\vx}\ell_k\Big) \cdot \vphi_j }{\vphi_i}} +  \\
+&+& \textcolor{red}{\nu_\Delta\,\int_\Omega \ell_k \, \trace{\D{\vphi_j}\cdot\grad \vphi_i} \d \Omega} -
+\\
+&-& \textcolor{red}{\frac{1}{\varepsilon} \prodscal{\ell_k\,\vphi_j}{\vphi_i}} \\
+\textcolor{Brown}{\mat H}_{ijk} &=& \textcolor{Brown}{\rho_\Delta\, \prodscal{\ell_k\,\vphi_j}{\vphi_i}}  \\
+\\
+\textcolor{Rhodamine}{\mat K}_{ijkl} &= & \textcolor{Rhodamine}{\rho_\Delta\, \prodscal{\Big( \ell_l \, \grad_{\vx}\vphi_j+ \vphi_j \otimes\grad_{\vx}\ell_l\Big)\cdot \vphi_k }{\vphi_i}} \\
+\end{eqnarray}
+%
+\begin{equation}
+\begin{array}{rcl}
+0 &=& \textcolor{OliveGreen}{F_i} + \textcolor{orange}{\sum_{j=1}^{N_\Phi} A_{ij} \, \dt{\alpha_j}}+ \textcolor{purple}{\sum_{j=1}^{N_\Phi} B_{ij}\,{\alpha_j}}+  \\
+&+& \textcolor{cyan}{\sum_{j=1}^{N_\Lambda} C_{ij}\,\grad_{\vec \beta}\th_j(\vec \beta) \cdot \dt{\vec \beta}} + \textcolor{blue}{\sum_{j=1}^{N_\Lambda} D_{ij}\,\th_j(\vec \beta)} + \\
+&+& \textcolor{Emerald}{\sum_{j=1}^{N_\Phi}\sum_{k=1}^{N_\Phi} E_{ijk}\,{\alpha_j}\,{\alpha_k}}+  \\
+&+& \textcolor{red}{\sum_{j=1}^{N_\Phi}\sum_{k=1}^{N_\Lambda} G_{ijk}\,{\alpha_j}\,{\th_k(\vec \beta)}}+  \\
+&+& \textcolor{Brown}{\sum_{j=1}^{N_\Phi} \sum_{k=1}^{N_\Lambda}  H_{ijk} \Big(\alpha_j \,  \grad_{\vec \beta}\th_k \big(\vec \beta\big)\,\dt{\vec \beta}+ \dt{\alpha_j}\, \th_k(\vec \beta)\Big)}+ \\
+&+& \textcolor{Rhodamine}{\sum_{j=1}^{N_\Phi} \,\sum_{k=1}^{N_\Phi} \sum_{l=1}^{N_\Lambda}
+K_{ijkl}\, \alpha_j \, \alpha_k \,\th_l (\vec \beta)}.
+\end{array}
+\end{equation}
+%
+\subsection{Projection de la level-set sur la base $\Psi$}
+%
+On note 
+$$\chi(\vx ,t ) \equiv \Q\big(\vx, \theta(t)\big) \triangleq \sum_{j=1}^{\nc}\sum_{k=1}^{\nc} x_j\, x_k\,A_{jk}\big(\theta(t)\big) + 
+\sum_{j=1}^{\nc} x_j\,c_{j}\big(\theta(t)\big) + d\big(\theta(t)\big).
+ $$
+de sorte que 
+\begin{equation}
+\beta_i \triangleq \prodscal{\chi}{\psi_i} \equiv 
+\sum_{j=1}^{\nc}\sum_{k=1}^{\nc} \prodscal{x_j\, x_k}{\psi_i}\,A_{jk}\big(\theta(t)\big) + 
+\sum_{j=1}^{\nc} \prodscal{x_j}{\psi_i}\,c_{j}\big(\theta(t)\big) + d\big(\theta(t)\big)
+\end{equation}
+et
+\begin{equation}
+\dt{\beta_i}\equiv \left( 
+\sum_{j=1}^{\nc}\sum_{k=1}^{\nc} \prodscal{x_j\, x_k}{\psi_i}\,A^\prime_{jk}\big(\theta(t)\big) + 
+\sum_{j=1}^{\nc} \prodscal{x_j}{\psi_i}\,c_{j}^\prime\big(\theta(t)\big) + d^\prime\big(\theta(t)\big) \right) \, \dt{\theta(t)}
+\end{equation}
+
+%
+\appendix
+%
+\newpage
+%
+\section{Misc}
+\subsection{Conditions initiales dans les applications ThosT}
+%
+fluide incompressible donc
+\begin{enumerate}
+\item $\div \, u(x, t=0) = \div \, u_0(x) = 0$, et 
+\item pas de condition initiale pour la pression.
+\end{enumerate}
+%
+À moins de reprendre le calcul à partir d'une solution connue, on considère $u_0=0$.
+% 
+\subsection{Conditions aux limites pour Navier-Stokes}
+%
+Voir: \cite[p. 40-41]{segal2015finite}, Condition "ne rien faire" dans \cite{van1987numerical} et en général pour les applications du projet HECO \cite[p. 87]{hachem2009stabilized}.
+%
+
+Ici, on ne considère que deux types de conditions limites, plus la valeur imposée de la pression en un point pour régulation:
+%
+\begin{itemize}
+\item Afflux au niveau des bruleurs: fixed Dirichlet boundary conditions using a prescribed velocity $u_D$ .
+\item Reflux au niveau des évacuations: Within our case, the most popular “do nothing” boundary condition will be used, which means a \emph{zero Neumann boundary} conditions. (More details about this subject are discussed by Gresho [2] and
+Heywood et al. [3])
+\item The pressure boundary condition is critical when there is no Neumann boundary.
+When only Dirichlet boundary conditions are imposed everywhere on our domain, the
+resulting pressure is obtained only up to an arbitrary constant. Therefore, two ways to
+define pressure field uniquely, either 
+\begin{enumerate}
+\item in prescribing an average value with respect to the complete domain having:$\int_\Omega p d\Omega = p_0$
+ where $p_0$ is a constant that can be zero,
+ \item  or by prescribing discrete value of the pressure at a point which is computationally the most convenient.
+\end{enumerate}
+\end{itemize}
+%
+%
+%
+\newpage
+\section{Ellipse en 2D}
+%
+Ellipse $\Gamma \in \RR^2$, de rayon principal $\ell_1=\lambda_1$, de rayon secondaire $\ell_2=\lambda_2\,\ell_1$ ($\lambda_2$ paramètre de forme), $\mat{L}=\diag(\ell_1, \ell_2)$ et $\mat D = \mat L^{-2}$:
+\begin{equation}
+\Gamma = \Big\{\vec{x} \in \RR^2\,;\; \vec{x}^\T\cdot\mat{D}\cdot\vec{x}-1=0\Big\},
+\end{equation}
+%
+\subsection{Décentrage}
+%
+%
+On change de repère pour placer le centre de l'ellipse en $\vec a \in \RR^2$:
+\begin{equation}
+\Gamma^\prime = \Big\{\vec{x}^\prime \in \RR^2\,;\; (\vec{x}^\prime-\vec a)^\T\cdot\mat{D}\cdot(\vec{x}^\prime-\vec 
+a)-1=0\Big\},
+\end{equation}
+
+N.B. Paramétrisation par l'angle $\theta\in [0, 2\,\pi]$:
+%
+\begin{equation}
+\begin{array}{rcl}
+s(\theta) &\triangleq& \tan\frac{\theta}{2}, \\
+x_1^\prime(\theta)& =& r_1\,\frac{1-s(\theta)^2}{1+s(\theta)^2}+a_1,\\
+x_2^\prime(\theta) &=& r_2\,\frac{2\,s(\theta)}{1+s(\theta)^2}+a_2.
+\end{array}
+\end{equation}
+%
+%
+Et on peut définir l'ellipse comme le lieu $\Gamma^\prime = \big\{\vec x^\prime(\theta); \theta\in(0, 2\,\pi)\big\}$
+%
+\subsection{Rotation de l'ellipse en 2D}
+%
+On effectue une rotation du repère de centre $\vec b \in \RR^2$ et d'angle $\theta(t)$.
+%
+Ceci s'écrit $\vec{x}^{\prime\prime} = \mat R\big(\theta(t)\big)\cdot (\vec x ^\prime-\vec b) + \vec{b}$ avec 
+%
+$$\mat R\big(\theta(t)\big) = \left( 
+\begin{array}{rr}
+\cos \big(\theta(t)\big)& - \sin \big(\theta(t)\big) \\
+\sin \big(\theta(t)\big)& \cos \big(\theta(t)\big)
+\end{array}
+\right).$$
+%
+\ie~$\vec x ^\prime = \mat R\big(\theta(t)\big)^\T\cdot(\vec{x}^{\prime\prime}-\vec{b})+\vec{b}$.
+%
+Pour simplifier la lecture, on note dans la suite $\vec{x}^{\prime\prime}\rightarrow \vec{x}$, et 
+\begin{equation}
+\Gamma_\theta = \Big\{\vec{x} \in \RR^2\,;\; \vec{x}^\T\cdot \mat{A}\cdot \vec{x} + \vec{c}^\T\cdot \vec{x} + d=0\Big\},
+\end{equation}
+avec
+\begin{eqnarray}
+\mat{A}\big(\theta(t)\big) &=& \mat R\big(\theta(t)\big)\cdot\mat{D}\cdot\mat R\big(\theta(t)\big)^\T\\
+\vec{v}\big(\theta(t)\big) & = & \left(\Id-\mat R\big(\theta(t)\big)^\T\right)\cdot\vec{b}-\vec{a}\\
+\vec{c}\big(\theta(t)\big) &=& 2\, \mat R\big(\theta(t)\big)\cdot\mat{D}\cdot \vec{v}\big(\theta(t)\big)\\
+d\big(\theta(t)\big) &=&\vec{v}\big(\theta(t)\big)^\T\cdot\mat{D}\cdot\vec{v}\big(\theta(t)\big) -1 \\
+\end{eqnarray}
+%
+Dans la suite, on note
+\begin{equation}
+\label{eq:Q(x)}
+Q\big(\vec{x}, \theta(t)\big) = \vec{x}^\T\cdot \mat{A}\big(\theta(t)\big)\cdot \vec{x} + \vec{c}\big(\theta(t)\big)^\T\cdot \vec{x} + d\big(\theta(t)\big)=0.
+\end{equation}
+%
+N.B. Courbe quadratique, \cf~\cite[\textsection 5.5, page 181]{schneider2002geometric}
+%
+\subsection{Distance à l'ellipse}
+%
+Un algorithme pour calculer la distance à une courbe quadratique est donné dans \cite[\textsection 6.4, page 217]{schneider2002geometric}, et est rappelé ci-après.
+%
+La distance $\mathrm d(\Gamma, \vec{p})$ d'un point $\vec{p}$ à la courbe $\Gamma_\theta$ est la plus petite distance de $\vec{p}$ à tous les point $\vec x \in \Gamma_\theta$:
+\begin{equation}
+\mathrm d(\Gamma_\theta, \vec{p}) \triangleq \min_{\vec{x}\in\Gamma_\theta} \mathrm{d}(\vec{x}, \vec{p}) \quad (=\mathrm{d}(\vec{x}_{\mathrm{min}}, \vec{p})).
+\end{equation}
+On peut se ramener à un calcul plus simple, en remarquant que $\vec{x}_\mathrm{min}-\vec{p}$ est forcément normal à la courbe $\Gamma_\theta$, \ie~est parallèle à $\nabla Q(\vec{x})\vert_{\vec{x}_\mathrm{min}}$, ce que l'on écrit $\vec{x}_\mathrm{min}-\vec{p}=t(2\,\mat A \cdot \vec{x}_{\mathrm{min}} + \vec{c})$ pour un certain $t \in \RR$.
+%
+En profitant de la décomposition $\mat A = \mat R _\theta \cdot \mat D \cdot \mat R_\theta ^\T$, ceci se réécrit:
+\begin{equation}
+\label{eq:xmin}
+\vec{x}_{\mathrm{min}} = \mat R _\theta \cdot( \Id + 2\, t\,\mat D)\cdot (\mat R _\theta^\T \cdot \vec{p}-t\,\mat R _\theta^\T \cdot \vec{c})
+\end{equation}
+%
+Pour déterminer les valeurs admissibles de $t$, on injecte (\ref{eq:xmin}) dans (\ref{eq:Q(x)}) puis on résout le polynôme résultant (d'ordre $\leq 4$).
+%
+Finalement, on reconstruit $\vec{x}(t_i)$ par (\ref{eq:xmin}) pour chaque racine $\{t_i\}_{1\leq i \leq 4}$, et on retient 
+$$\vec{x}_{\mathrm{min}} = \underset{\{\vec x_i; {1\leq i \leq 4}\}}{\operatorname{argmin}}\parallel \vec{x}_i-\vec p\parallel_2$$
+
+
+\subsection{Calcul de la fonction distance signée}
+Dans \cite{hachem2013immersed}, E. Hachem utilise la méthode donnée dans \cite[Appendix A]{bruchon2009using}, qui est basée sur (i) le calcul de la distance non signée tiré de \cite{schneider2002geometric} et (ii) l'introduction d'un \emph{paramètre de qualité} qui permet de \emph{choisir} le signe de la distance.
+%
+\\
+
+Ici, on utilise le fait que l'intérieur de l'ellipse est caractérisé par $Q(\vec{x}) < 0$:
+\begin{equation}
+\chi(\vec{x}) = \operatorname{sign}\big(-Q(\vec{x})\big)\,\mathrm d(\Gamma_\theta, \vec{p}).
+\end{equation}
+%
+%
+%
+\subsection{Vitesse de rotation}
+%
+%
+%
+On se donne une vitesse de rotation $\omega = \frac{\d \theta(t)}{\d t}$ (rad/s).
+On reconstruit alors le vecteur vitesse instantanée associé à cette rotation dans tout le domaine comme:
+$$
+\vu_s(\vx) 
+= 
+\parallel \vx \parallel_2\,\omega\,
+\left(
+\begin{array}{r}
+ \sin\big(\theta(\vx)\big) \\
+ \cos\big(\theta(\vx)\big)
+\end{array}
+\right)
+$$
+%
+%
+%
+%
+%
+%
+%
+\bibliographystyle{plain}
+%
+%
+%
+%
+\bibliography{../../biblio/JabRefDataBase.bib}
+%
+%
+%
+%
+%
+%
+%
+\end{document}

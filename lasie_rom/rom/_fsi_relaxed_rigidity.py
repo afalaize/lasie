@@ -31,7 +31,7 @@ class ReducedOrderModel(object):
 
         parameters: dictionary
             Simulation, POD-ROM and runtime parameters.
-        
+
         levelset_func: function(t, x1, ..., xD) s.t.
         - levelset_func(t, x)>0 for x in the t-dependent solid domain,
         - levelset_func(t, x)<0 for x in the t-dependent fluid domain,
@@ -41,7 +41,7 @@ class ReducedOrderModel(object):
         self.parameters = parameters
 
         # recover hdf files
-        self.paths = paths
+        self.paths = hdfpaths
         for k in self.paths:
             setattr(self, k, HDFReader(self.paths[k]))
 
@@ -49,10 +49,6 @@ class ReducedOrderModel(object):
         eps = self.parameters['eps_tanh']
         self.heaviside = smooth.build_vectorized_heaviside(eps)
 
-        # define a levelset constructor that takes the angle as a aprameter
-        levelset_func = build_lambdified_levelset(parameters['ell_center'],
-                                                  parameters['ell_radius'],
-                                                  parameters['rot_center'])
         self.levelset = levelset_func
 
     def open_hdfs(self):
@@ -89,8 +85,8 @@ class ReducedOrderModel(object):
         """
         return self.original_coeffs.coeffs[:].shape[1]
 
-    def update_Is(self, angle):
-        self._Is = self.heaviside(self.levelset(angle, *[xi for xi in self.grid.mesh[:].T]))
+    def update_Is(self, t):
+        self._Is = self.heaviside(self.levelset(t, *[xi for xi in self.grid.mesh[:].T]))
 
     def update_rho_and_nu(self):
         self._rho = self.parameters['rho'] + self.parameters['rho_delta']*self._Is
@@ -182,10 +178,10 @@ class ReducedOrderModel(object):
                                                progressbar.Bar(), ' (',
                                                progressbar.ETA(), ')\n', ])
 
-        for i in bar(range(len(self.times))):
+        for i in bar(range(len(self.times)-1)):
 
             theta += self.dt*self.parameters['angular_vel']
-            self.update_Is(theta)
+            self.update_Is(self.times[i+1])
             self.update_rho_and_nu()
             self.update_A()
             self.update_B()

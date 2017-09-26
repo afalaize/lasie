@@ -18,7 +18,7 @@ class ReducedOrderModel(object):
     """
     """
 
-    def __init__(self, hdfpaths, parameters, levelset_func):
+    def __init__(self, hdfpaths, parameters, levelset_func, velocity_func):
         """
         hdfpaths: dictionary
             {'name': 'path/to/hdf/file.hdf', ...}
@@ -31,7 +31,7 @@ class ReducedOrderModel(object):
 
         parameters: dictionary
             Simulation, POD-ROM and runtime parameters.
-        
+
         levelset_func: function(t, x1, ..., xD) s.t.
         - levelset_func(t, x)>0 for x in the t-dependent solid domain,
         - levelset_func(t, x)<0 for x in the t-dependent fluid domain,
@@ -41,7 +41,7 @@ class ReducedOrderModel(object):
         self.parameters = parameters
 
         # recover hdf files
-        self.paths = paths
+        self.paths = hdfpaths
         for k in self.paths:
             setattr(self, k, HDFReader(self.paths[k]))
 
@@ -49,11 +49,9 @@ class ReducedOrderModel(object):
         eps = self.parameters['eps_tanh']
         self.heaviside = smooth.build_vectorized_heaviside(eps)
 
-        # define a levelset constructor that takes the angle as a aprameter
-        levelset_func = build_lambdified_levelset(parameters['ell_center'],
-                                                  parameters['ell_radius'],
-                                                  parameters['rot_center'])
+        # define a levelset constructor that takes the time as a aprameter
         self.levelset = levelset_func
+        self.velocity = velocity_func
 
     def open_hdfs(self):
         for k in self.paths:
@@ -89,8 +87,8 @@ class ReducedOrderModel(object):
         """
         return self.original_coeffs.coeffs[:].shape[1]
 
-    def update_Is(self, angle):
-        self._Is = self.heaviside(self.levelset(angle, *[xi for xi in self.grid.mesh[:].T]))
+    def update_Is(self, t):
+        self._Is = self.heaviside(self.levelset(t, *[xi for xi in self.grid.mesh[:].T]))
 
     def update_rho_and_nu(self):
         self._rho = self.parameters['rho'] + self.parameters['rho_delta']*self._Is
@@ -120,23 +118,12 @@ class ReducedOrderModel(object):
                                                        self._f_lambda)
 
     def update_lambda(self):
-        self._lambda = self._lambda + np.einsum('x,xc->xc', self._nu, self._u)
+        self._lambda = self._lambda - self.dt*self.parameters['c_lambda']*(self._u-self._Vs[:,:])
 
     def update_f_lambda(self):
-        # Compute the gradient of lambda
-        lambda_grad = operators.gridgradient(self._lambda,
-                                             self.grid.shape[:][:, 0],
-                                             self.grid.h[:][:, 0])
-
         # update f_lambda
-        arg_of_trace = np.einsum('xce,xedi->xcdi',
-                                 0.5*(lambda_grad +
-                                      lambda_grad.swapaxes(1, 2)),
-                               self.matrices.d[:])
-
-        self._f_lambda = np.einsum('xcci->xi', arg_of_trace)
-
-#        self._f_lambda = np.einsum('xc,xci->xi', self._lambda, self.basis.basis[:])
+        phi_minus_vs = concatenate_in_given_axis([self.basis.basis[:,:,i]-self._Vs[:,:] for i in range(self.npod())], 2)
+        self._f_lambda = np.einsum('xc,xci->xi', self._lambda, phi_minus_vs)
 
     def imp_func(self, coeffs, coeffs_l, coeffs_n):
         return (np.einsum('ij,j->i',
@@ -148,14 +135,6 @@ class ReducedOrderModel(object):
                           self._A/self.dt,
                           coeffs_n) +
                 self._F)
-
-    def rigidity(self):
-        grad = operators.gridgradient(self._u,
-                                      self.grid.shape[:, 0],
-                                      self.grid.h[:, 0])
-        return np.einsum('x,xcd->xcd',
-                         self._Is,
-                         0.5*(grad+grad.swapaxes(1, 2)))
 
     def run(self, dt=0.01, tend=1):
 
@@ -172,6 +151,9 @@ class ReducedOrderModel(object):
         self.coeffs = list()
         self.coeffs.append(self.original_coeffs.coeffs[0, :])
 
+        # define the velocity associated with the the solid rotation
+        self._Vs = self.velocity(*[xi for xi in self.grid.mesh[:].T])
+
         self._u = np.random.randn(self.nx(), self.nc())
         self.update_u(self.coeffs[-1])
 
@@ -182,10 +164,10 @@ class ReducedOrderModel(object):
                                                progressbar.Bar(), ' (',
                                                progressbar.ETA(), ')\n', ])
 
-        for i in bar(range(len(self.times))):
+        for i in bar(range(len(self.times)-1)):
 
             theta += self.dt*self.parameters['angular_vel']
-            self.update_Is(theta)
+            self.update_Is(self.times[i+1])
             self.update_rho_and_nu()
             self.update_A()
             self.update_B()
@@ -230,7 +212,7 @@ class ReducedOrderModel(object):
 
                 # make tests
                 test_u = np.linalg.norm(self._u-self._u_old)/np.linalg.norm(self._u_old)
-                test_lambda = np.linalg.norm(self.rigidity())
+                test_lambda = np.linalg.norm(np.einsum('xc,x->xc', self._u-self._Vs, self._Is))
 
                 # Printing
                 message = 'n={0}, l={1}, test_u={2}, test_lambda={3}'
@@ -290,10 +272,8 @@ def temp_c(phi, grad_phi):
 def temp_d(grad_phi):
     return 0.5 * (grad_phi + grad_phi.swapaxes(1, 2))
 
-
 def temp_f_rho(phi, u_moy, grad_u_moy):
     return np.einsum('xcd,xd,xci->xi', grad_u_moy, u_moy, phi)
-
 
 def temp_f_nu(grad_phi, grad_u_moy):
     temp_phi = 0.5*(grad_phi+grad_phi.swapaxes(1, 2))

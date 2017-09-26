@@ -38,7 +38,6 @@ for i, path_to_ihdf in enumerate(paths['ihdf']):
         dataname = args[temp.index(True)]
         d.closeHdfFile()
 
-    print('\nconcatenate times-serie\n{}'.format(PVD_NAMES[i]))
     U = ts.concatenate(dataname)
 
     # Compute mean and fluctuations
@@ -54,7 +53,6 @@ for i, path_to_ihdf in enumerate(paths['ihdf']):
     grid_h = grid_hdf.h[:][:, 0]
 
     # Compute mean gradient
-    print('\nCompute mean gradient\n{}'.format(PVD_NAMES[i]))
     mean_grad = operators.gridgradient(mean, grid_shape, grid_h)
 
     # define data
@@ -67,12 +65,10 @@ for i, path_to_ihdf in enumerate(paths['ihdf']):
     grid_hdf.closeHdfFile()
 
     # write hdf for mean and fluct
-    print('\nwrite hdf for mean and fluct\n{}'.format(PVD_NAMES[i]))
     hdf.data2hdf(data, paths['meanfluc'][i])
 
     # --------------------------------------------------------------------------- #
     # Compute POD basis
-    print('\nCompute POD basis\n{}'.format(PVD_NAMES[i]))
     meanfluc_hdf = hdf.HDFReader(paths['meanfluc'][i])
     meanfluc_hdf.openHdfFile()
     basis = pod.compute_basis(meanfluc_hdf.fluc[:],
@@ -88,9 +84,9 @@ for i, path_to_ihdf in enumerate(paths['ihdf']):
 
 
     # Compute pod gradient
-    print('\nCompute POD gradient\n{}'.format(PVD_NAMES[i]))
     def compute_grad(a):
         return operators.gridgradient(a, grid_shape, grid_h)
+
 
     def grad_generator():
         for a in misc.iterarray(basis, 2):
@@ -103,7 +99,6 @@ for i, path_to_ihdf in enumerate(paths['ihdf']):
             'basis_grad': basis_grad}
 
     # write hdf for pod basis
-    print('\nwrite hdf for pod basis\n{}'.format(PVD_NAMES[i]))
     hdf.data2hdf(data, paths['basis'][i])
 
     # Close hdf file for grid
