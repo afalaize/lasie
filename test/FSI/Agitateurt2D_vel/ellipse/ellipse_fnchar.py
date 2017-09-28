@@ -6,7 +6,7 @@ Ceci est un script temporaire.
 """
 
 import dolfin
-import os
+from lasie_rom.misc import smooth
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -71,7 +71,7 @@ def build_fnchar_Dolfin_Expression(ell_center, ell_radius, rot_center, eps):
         Q = Q.subs(dict([(bi, vali) for (bi, vali) in zip(b, rot_center)]))
         Q = Q.subs(dict([(ri, vali) for (ri, vali) in zip(l, ell_radius)]))
 
-        fnchar = heaviside_eps(-Q, eps=eps)
+        fnchar = smooth.heaviside(-Q, eps=eps)
 
         ccode = sy.printing.ccode(fnchar)
 
