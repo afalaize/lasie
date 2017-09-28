@@ -154,6 +154,7 @@ def write_vtu(i):
     urom = U_rom[:, :, i] - rom_ns.meanfluc.mean[:, :]
     data = {'vitesse_rom': urom,
             'vitesse_fom': ufom,
+            'levelset': lsi,
             'error': urom-ufom}
     vtk.write(mesh, grid_shape, data,
               os.path.join(paths['output'], 'output_fluc{}.vtu'.format(i)))
@@ -166,8 +167,8 @@ ls.closeHdfFile()
 def myplot(i):
     import matplotlib.pyplot as plt
     plt.close('all')
-    plt.plot(rom_ns.times, rom_ns.c_rom(i), '-o', label='rom')
-    plt.plot(rom_ns.times, rom_ns.c_fom(i)[:len(rom_ns.c_rom(i))], '--o', label='fom')
+    plt.plot(rom_ns.times[:len(rom_ns.c_rom(i))], rom_ns.c_rom(i), '-o', label='rom')
+    plt.plot(rom_ns.times[:len(rom_ns.c_rom(i))], rom_ns.c_fom(i)[:len(rom_ns.c_rom(i))], '--o', label='fom')
     plt.xlabel('$time $t$ (s)')
     plt.ylabel('$\\alpha_%i(t)$' % i)
     plt.legend(loc=0)

@@ -122,8 +122,7 @@ class ReducedOrderModel(object):
 
     def update_f_lambda(self):
         # update f_lambda
-        phi_minus_vs = concatenate_in_given_axis([self.basis.basis[:,:,i]-self._Vs[:,:] for i in range(self.npod())], 2)
-        self._f_lambda = np.einsum('xc,xci->xi', self._lambda, phi_minus_vs)
+        self._f_lambda = np.einsum('xc,xci->xi', self._lambda, self.basis.basis[:])
 
     def imp_func(self, coeffs, coeffs_l, coeffs_n):
         return (np.einsum('ij,j->i',

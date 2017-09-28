@@ -27,7 +27,7 @@ VTU_FOLDER = resultsFolderName
 
 # name of the folder where to store new data (POD basis, ROM results, figures, etc.)
 #MAIN_FOLDER = os.path.join(VTU_FOLDER, 'POD_Results')
-MAIN_FOLDER = '/Users/afalaize/Developement/hdfs'
+MAIN_FOLDER = '/Users/afalaize/Developement/hdfs_re500'
 
 # name of the .pvd file in VTU_FOLDER that summarize the .vtu files (the .pvd extension is appended when needed)
 PVD_NAMES = ['velocity', 'fnchar', 'levelset']

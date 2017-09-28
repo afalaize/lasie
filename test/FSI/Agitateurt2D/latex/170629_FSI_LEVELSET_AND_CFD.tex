@@ -13,6 +13,8 @@
 \begin{document}
 %
 %
+
+
 \part{CURRENT}
 \begin{description}
 \item[$\Id$] Identity tensor,
@@ -338,7 +340,7 @@ $\alpha_i(t_{n+1}) \leftarrow \alpha_i^{\ell}$\;
  \caption{Resolution with Newton-Uzawa.}
 \end{algorithm}
 
-\section{relaxed velocity}
+\part{relaxed velocity}
 
 \begin{equation}
 \left\{
@@ -432,7 +434,7 @@ $$
 \begin{eqnarray}
 \nonumber 0 &=& 
 \int_{\dom}\rho\left(\dt \vu + \grad \vu \cdot \vu\right)\cdot\vv \,\d\vx + \int_{\dom}2\,\nu\,\trace{\D{\vu}\cdot\D{\vv}} \, \d\vx\\
-\nonumber & & - \int_{\dom} p\,\div \vv \,\d\vx + \int_{\doms(t)} \vlambda \cdot (\vv-\vuo) \, \d \vx \\
+\nonumber & & - \int_{\dom} p\,\div \vv \,\d\vx + \int_{\doms(t)} \vlambda \cdot \vv \, \d \vx \\
 \label{eq:solid_weak} & & + \int_{\dom} q\,\div \vu \,\d\vx + \int_{\doms(t)}\vmu \cdot (\vu-\vuo)\,\d \vx
 \end{eqnarray}
 %
@@ -445,13 +447,18 @@ Notice the terms associated to the mutual stress on the fluid/solid interface $\
 We consider the POD basis $(\vphi_i(\vx))_{1 \leq i \leq N_\Phi}$ with $\vu(\vx, t)\simeq \bu(\vx) + \sum_{i=1}^{N_\Phi}\vphi_i(\vx)\,\alpha_i(t)$
 \begin{eqnarray}
 \nonumber 0 &=& 
-\int_{\dom}\rho\left(\dt \vu + \grad \vu \cdot \vu\right)\cdot\vphi_i \,\d\vx + \int_{\dom}2\,\nu\,\trace{\D{\vu}\cdot\D{\vphi_i}} \, \d\vx\\
-\nonumber & & - \int_{\dom} p\,\div \vphi_i \,\d\vx + \int_{\doms(t)} \vlambda \cdot (\vphi_i-\vuo) \, \d \vx \\
-\label{eq:solid_weak} & & + \int_{\dom} q\,\div \vu \,\d\vx + \int_{\doms(t)}\vmu \cdot (\vu-\vuo)\,\d \vx
+\int_{\dom}\rho\left(\dt \vu + \grad \vu \cdot \vu\right)\cdot\vphi_i \,\d\vx 
++ \int_{\dom}2\,\nu\,\trace{\D{\vu}\cdot\D{\vphi_i}} \, \d\vx\\
+\nonumber & & 
+- \int_{\dom} p\,\div \vphi_i \,\d\vx 
++ \int_{\doms(t)} \vlambda \cdot \big(\vphi_i-(\vuo-\bu)\big) \, \d \vx \\
+\label{eq:solid_weak} & & 
++ \int_{\dom} q\,\div \vu \,\d\vx 
++ \int_{\doms(t)}\vmu \cdot (\vu-\vuo)\,\d \vx
 \end{eqnarray}
-
-
-
+%
+%
+%
 \section{ROM}
 \begin{eqnarray}
 \rho(\vx, t) &=& \rhos\,\ind{\doms(t)}(\vx)+\rhof\,\Big( 1-\ind{\doms(t)}(\vx) \Big) \\
