@@ -118,7 +118,7 @@ class ReducedOrderModel(object):
                                                        self._f_lambda)
 
     def update_lambda(self):
-        self._lambda = self._lambda - self.dt*self.parameters['c_lambda']*(self._u-self._Vs[:,:])
+        self._lambda = self._lambda + self.parameters['c_lambda']*(self._u-self._Vs[:,:])/self.dt
 
     def update_f_lambda(self):
         # update f_lambda

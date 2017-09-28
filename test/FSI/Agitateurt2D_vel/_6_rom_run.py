@@ -106,7 +106,7 @@ U_fom = ts.concatenate(dataname)
 # Run ROM
 
 # Simulation time steps run from 0 to TEND (s)
-T_rom = 150*parameters['rom']['dt']
+T_rom = U_fom.shape[-1]*parameters['rom']['dt']
 
 rom_ns.open_hdfs()
 angle = parameters['angular_vel']*parameters['load']['tmin'] % 2*np.pi
@@ -134,7 +134,12 @@ if not os.path.exists(paths['output']):
     os.mkdir(paths['output'])
 
 
-ls = hdf.HDFReader(paths['meanfluc'][2], openFile=True)
+ls = hdf.HDFReader(paths['meanfluc'][2])
+ls.openHdfFile()
+ls_mean = ls.mean[:]
+ls_fluc = ls.fluc[:]
+ls.closeHdfFile()
+
 
 def write_vtu(i):
     "write vtu from a given index"
@@ -142,34 +147,36 @@ def write_vtu(i):
 
     ufom = U_fom[:, :, i]
     urom = U_rom[:, :, i]
-    lsi = ls.mean[:] + ls.fluc[:, :, i]
+    lsi = ls_mean[:] + ls_fluc[:, :, i]
+
     data = {'vitesse_rom': urom,
             'vitesse_fom': ufom,
             'levelset': lsi,
             'error': urom-ufom}
+
     vtk.write(mesh, grid_shape, data,
               os.path.join(paths['output'], 'output{}.vtu'.format(i)))
 
     ufom = U_fom[:, :, i] - rom_ns.meanfluc.mean[:, :]
     urom = U_rom[:, :, i] - rom_ns.meanfluc.mean[:, :]
+
     data = {'vitesse_rom': urom,
             'vitesse_fom': ufom,
             'levelset': lsi,
             'error': urom-ufom}
+
     vtk.write(mesh, grid_shape, data,
               os.path.join(paths['output'], 'output_fluc{}.vtu'.format(i)))
 
 parallelization.map(write_vtu, range(U_rom.shape[-1]-1))
 
-ls.closeHdfFile()
-
 #%%
 def myplot(i):
     import matplotlib.pyplot as plt
     plt.close('all')
-    plt.plot(rom_ns.times[:len(rom_ns.c_rom(i))], rom_ns.c_rom(i), '-o', label='rom')
-    plt.plot(rom_ns.times[:len(rom_ns.c_rom(i))], rom_ns.c_fom(i)[:len(rom_ns.c_rom(i))], '--o', label='fom')
-    plt.xlabel('$time $t$ (s)')
+    plt.plot(rom_ns.times[:len(rom_ns.c_rom(i))-1], rom_ns.c_rom(i)[:len(rom_ns.c_rom(i))-1], '-r', label='rom')
+    plt.plot(rom_ns.times[:len(rom_ns.c_rom(i))-1], rom_ns.c_fom(i)[:len(rom_ns.c_rom(i))-1], '.b', label='fom')
+    plt.xlabel('time $t$ (s)')
     plt.ylabel('$\\alpha_%i(t)$' % i)
     plt.legend(loc=0)
     plt.title('Temporal coefficient $\\alpha_%i(t)$' % i)

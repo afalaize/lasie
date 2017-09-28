@@ -24,7 +24,7 @@ from ellipse.ellipse_levelset import build_Levelset_Dolfin_Expression
 from ellipse.ellipse_tools import build_velocity_Expression
 
 from _0_parameters import parameters
-from _0_locatios import VTU_FOLDER
+from _0_locations import VTU_FOLDER
 
 def fenicsSimulation():
 

@@ -13,16 +13,15 @@ from lasie_rom.classes import TimeSerie
 
 import numpy
 
-from main import parameters
-from locations import paths
-from options import options
+from _0_parameters import parameters
+from _0_locations import paths
 import time
 
 
 # --------------------------------------------------------------------------- #
 # convert all .vtu files listed in the .pvd file to new .hdf files
 for i, path_to_pvd in enumerate(paths['pvd']):
-    pvd2hdf(path_to_pvd, paths['hdf'][i], **options['load'])
+    pvd2hdf(path_to_pvd, paths['hdf'][i], **parameters['load'])
 
 # --------------------------------------------------------------------------- #
 # build grid and corresponding mesh for interpolation
