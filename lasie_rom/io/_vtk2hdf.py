@@ -57,8 +57,7 @@ def vtk2hdf(vtk_path, hdf_path):
     hdf_file.close()
 
 
-def pvd2hdf(pvd_path, hdf_folder, imin=None, imax=None, decim=None,
-            tmin=None, tmax=None):
+def pvd2hdf(pvd_path, hdf_folder, imin=None, imax=None, decim=None):
     """
     Convert data from all .vtk files listed in a .pvd file to .hdf5 files.
 

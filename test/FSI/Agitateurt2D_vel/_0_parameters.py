@@ -16,7 +16,7 @@ from lasie_rom.io import hdf
 lambda1 = 0.375/1.  # Ellipse principal radius/box side length (d.u.)
 lambda2 = .2    # Ellipse shape parameter (d.u.)
 lambda3 = 0.     # Ellipse excentricity parameter (d.u.)
-lambda4 = 1000.    # Reynolds Number (d.u.)
+lambda4 = 100.    # Reynolds Number (d.u.)
 eps_tanh = 0.0
 
 parameters = {'lambda': (lambda1, lambda2, lambda3, lambda4),  # parameters
@@ -68,7 +68,7 @@ parameters.update({'dt': 0.005,       # Time step
 
 parameters.update({'pen': 1e-9,        # Coefficient de penalisation volumique (~0)
               'eps_u': 1e-4,      # Test for convergence of the solution
-              'eps_lambda': 1e-1,  # Tolerance on relaxed constraints
+              'eps_lambda': 5,  # Tolerance on relaxed constraints
               'c_lambda': 1,  # Tolerance on relaxed constraints
               })
 # --------------------------------------------------------------------------- #
@@ -82,8 +82,8 @@ parameters.update({'rho': 1.,         # masse volumique du fluide
 
 # --------------------------------------------------------------------------- #
 # POD data parameters
-TMIN = 15.      # Time for the first snapshot
-TMAX = 20.      # Time for the last snapshot
+TMIN = 25.      # Time for the first snapshot
+TMAX = 30.      # Time for the last snapshot
 
 TEXPORT = parameters['nb_export']*parameters['dt']
 
@@ -107,7 +107,8 @@ parameters['load'] = {'tmin': TMIN,       # starting time
 POD_THRESHOLD = 1e-3
 
 # Maximum number of modes
-POD_NMODESMAX = 25
+POD_NMODESMAX = 20
+
 parameters['pod'] = {'thld': POD_THRESHOLD,
                      'nmax': POD_NMODESMAX}
 

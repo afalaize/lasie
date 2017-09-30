@@ -9,9 +9,7 @@ Created on Tue Aug 22 11:42:17 2017
 import os
 from _0_parameters import parameters
 
-base_location = '/media/afalaize/DATA1/TESTS_FENICS/FSI/170628_FSI_2D'
-
-# --------------------------------------------------------------------------- #
+# ----------------------------------------------------------------------- #
 def build_resultsFolderName(parameters):
     resultsFolderName = "results"
     resultsFolderName += "_radius={0}".format(parameters['lambda'][0])
@@ -22,21 +20,14 @@ def build_resultsFolderName(parameters):
     resultsFolderName += "_mesh={0}X{0}".format(int(parameters['h_mesh']**-1))
     return resultsFolderName
 
-def safe_mkdir(path):
-    if not os.path.exists(path):
-        os.mkdir(path)
-
-
-# --------------------------------------------------------------------------- #
-
 resultsFolderName = build_resultsFolderName(parameters)
 
 # Principal folder (where are stored the .vtu files associated with Fenics simulation result)
-VTU_FOLDER = os.path.join(base_location, resultsFolderName)
+VTU_FOLDER = resultsFolderName
 
 # name of the folder where to store new data (POD basis, ROM results, figures, etc.)
-MAIN_FOLDER = os.path.join(VTU_FOLDER, 'POD_Results')
-#MAIN_FOLDER = '/Users/afalaize/Developement/hdfs_re500'
+#MAIN_FOLDER = os.path.join(VTU_FOLDER, 'POD_Results')
+MAIN_FOLDER = '/Users/afalaize/Developement/hdfs_re500'
 
 # name of the .pvd file in VTU_FOLDER that summarize the .vtu files (the .pvd extension is appended when needed)
 PVD_NAMES = ['velocity', 'fnchar', 'levelset']
@@ -104,12 +95,6 @@ paths = {'pvd': PVD_PATH,
          'results': MAIN_FOLDER,
          'output': OUT_FOLDER
          }
-
-
-safe_mkdir(VTU_FOLDER)
-safe_mkdir(MAIN_FOLDER)
-
-
 
 # ----------------------------------------------------------------------- #
 # Save parameters

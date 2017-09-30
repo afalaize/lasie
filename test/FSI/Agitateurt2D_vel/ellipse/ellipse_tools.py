@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import sympy as sy
-
-
 def build_angle_Expression(center):
     """
     Return a function that returns the dolfin expression for the angle
@@ -15,9 +12,6 @@ def build_angle_Expression(center):
         Coordinates (x1, x2) of the center of the frame.
 
     """
-    import dolfin
-
-
     def angle_Ccode():
         x = sy.symbols('x:2', real=True)
         b = sy.symbols('b:2', real=True)
