@@ -15,56 +15,38 @@ import scipy.io.wavfile as wave
 coeffs_hdf = lr.io.hdf.HDFReader(paths['coeffs'])
 coeffs_hdf.openHdfFile()
 
-frate, data = (parameters['nb_export']*parameters['dt'])**-1, coeffs_hdf.coeffs[:, 0]
-nfft = 2**12
-w = np.fft.fft(data, nfft)
-freqs = np.fft.fftfreq(len(w))
+from scipy.interpolate import CubicSpline
 
-# Find the peak in the coefficients
-def get_imax(data):
-	idx = np.argmax(data)
-	freq = freqs[idx]
-	freq_in_hertz = abs(freq * frate)
-	print(freq_in_hertz)
-	return idx, freq_in_hertz
+frate = (parameters['nb_export']*parameters['dt'])**-1
 
-mask = freqs > 0
-F = freqs[mask]*frate
-A = np.abs(w[mask])
+angles = np.linspace(0, 2*np.pi, 1e4)
+Nt = coeffs_hdf.coeffs[:].shape[0]
 
-A_diff = np.diff(A)
-A_diff = np.array(list(A_diff) + [A_diff[-1]])
+t = parameters['load']['tmin'] + parameters['dt']*np.array(range(Nt))
+angle = (parameters['theta_init']+(parameters['angular_vel']*))%(2*np.pi)
+inds = np.argsort(angle)
+all_angles = []
+all_data = []
 
-def get_lr_zeros(data, iref):
-	ileft = iright = iref
-	ileft -= 1
-	while data[ileft] > 0 and ileft > 0:
-		ileft -= 1
-	iright += 1
-	while data[iright] < 0 and iright < len(data)-1:
-		iright += 1
-	return ileft, iright
+for i in range(coeffs_hdf.coeffs[:].shape[-1]):
 
-Nfreqs = 3
+	data = coeffs_hdf.coeffs[:, i]
+	interpolator = CubicSpline(angle[inds], data[inds])
 
+	interp = interpolator(angles)
 
-F_sig = []
-I_sig = []
+	nangles = [0, 2*np.pi]
 
-for i in range(Nfreqs):
-	imax, fmax = get_imax(A)
-	F_sig.append(fmax)
-	I_sig.append(imax)
-	(l, r) = get_lr_zeros(A_diff, imax)
-	A[l:r] = np.zeros(r-l)
+	e = np.abs(interp)
+	error = 1
 
-t = parameters['load']['tmin'] + np.array(range(len(data)))/frate
-#plt.plot(F, np.abs(w[mask]))
-for i, f in enumerate(F_sig):
-	plt.plot(t, data)
-	plt.plot(t, np.abs(w[I_sig[i]]*np.exp(2*1j*np.pi*f*t))) 
+	while error > 5e-2:
+	    nangles.append(angles[np.argmax(np.abs(e))])
+	    nangles.sort()
+	    redinterp = CubicSpline(nangles, interpolator(nangles))
+	    e = interp - redinterp(angles)
+	    error = np.linalg.norm(e)/np.linalg.norm(interp)
 
-	#plt.plot(f*np.ones(50), np.linspace(min(np.abs(w)), max(np.abs(w)), 50))
-plt.show()
-
+	all_angles.append(nangles)
+	all_data.append(interpolator(nangles))
 
