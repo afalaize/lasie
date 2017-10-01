@@ -40,7 +40,7 @@ def plot_relative_energy_of_eigen_values(i):
 def plot_pod_basis(i):
     grid = io.hdf.HDFReader(paths['grid'], openFile=True)
     basis = io.hdf.HDFReader(paths['basis'][i], openFile=True)
-    plots.plot2d(basis.basis[:, :, :8],
+    plots.plot2d(basis.basis[:, :, :4],
                  grid.shape[:, 0],
                  render='magnitude', options={'ncols': 2})
     grid.closeHdfFile()
