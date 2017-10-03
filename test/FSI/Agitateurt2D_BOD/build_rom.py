@@ -12,8 +12,8 @@ from lasie_rom.classes import TimeSerie
 from lasie_rom.rom import fsi_relaxed_velocity_BOD
 from lasie_rom.misc.tools import sympyExpr2numpyFunc
 
-from _0_parameters import parameters
-from _0_locations import paths
+from set_parameters import parameters
+from set_locations import paths
 
 import numpy
 import sympy as sy

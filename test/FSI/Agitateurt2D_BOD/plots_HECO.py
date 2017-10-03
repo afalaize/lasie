@@ -8,7 +8,7 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
-from _0_locations import paths
+from set_locations import paths
 from lasie_rom.io.hdf import HDFReader
 
 from lasie_rom.plots import plot2d

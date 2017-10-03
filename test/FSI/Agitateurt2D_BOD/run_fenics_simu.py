@@ -19,12 +19,12 @@ from __future__ import print_function
 import numpy as np
 import os
 
-from ellipse.ellipse_fnchar import build_fnchar_Dolfin_Expression
-from ellipse.ellipse_levelset import build_Levelset_Dolfin_Expression
-from ellipse.ellipse_tools import build_velocity_Expression
+from lasie_rom.geometry.ellipse.ellipse_fnchar import build_fnchar_Dolfin_Expression
+from lasie_rom.geometry.ellipse.ellipse_levelset import build_Levelset_Dolfin_Expression
+from lasie_rom.geometry.ellipse.ellipse_tools import build_velocity_Expression
 
-from _0_parameters import parameters
-from _0_locations import VTU_FOLDER
+from set_parameters import parameters
+from set_locations import VTU_FOLDER
 
 def fenicsSimulation():
 

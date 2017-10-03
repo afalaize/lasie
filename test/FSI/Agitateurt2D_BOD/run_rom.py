@@ -13,8 +13,8 @@ import sympy as sy
 from lasie_rom.io import hdf, vtk
 from lasie_rom.classes import TimeSerie
 
-from _0_parameters import parameters
-from _0_locations import paths
+from set_parameters import parameters
+from set_locations import paths
 
 from lasie_rom import parallelization, rom
 

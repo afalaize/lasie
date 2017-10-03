@@ -11,8 +11,8 @@ import os
 
 import numpy as np
 
-from _0_locations import paths
-from _0_parameters import parameters
+from set_locations import paths
+from set_parameters import parameters
 
 from lasie_rom.classes import TimeSerie
 

@@ -1,6 +1,6 @@
 
-from _0_parameters import parameters
-from _0_locations import paths
+from set_parameters import parameters
+from set_locations import paths
 
 import lasie_rom as lr
 

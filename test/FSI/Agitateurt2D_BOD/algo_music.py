@@ -1,17 +1,17 @@
 
-from _0_parameters import parameters
-from _0_locations import paths   
+from set_parameters import parameters
+from set_locations import paths
 
 import lasie_rom as lr
-           
+
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-              
+
 import numpy as np
 
 import scipy.io.wavfile as wave
-    
+
 coeffs_hdf = lr.io.hdf.HDFReader(paths['coeffs'])
 coeffs_hdf.openHdfFile()
 
@@ -21,7 +21,7 @@ N = len(data)
 nc = int(N**0.5)
 nl = N+1-nc
 
-S = np.zeros((nl, nc)) 
+S = np.zeros((nl, nc))
 for i in range(nl):
 	for j in range(nc):
 		S[i, j] = data[i+j]

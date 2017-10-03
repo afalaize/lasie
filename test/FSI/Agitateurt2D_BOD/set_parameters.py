@@ -16,10 +16,10 @@ from lasie_rom.io import hdf
 lambda1 = 0.375/1.  # Ellipse principal radius/box side length (d.u.)
 lambda2 = .2    # Ellipse shape parameter (d.u.)
 lambda3 = 0.     # Ellipse excentricity parameter (d.u.)
-lambda4 = 500.  # Reynolds Number (d.u.)
+lambda4 = 510.  # Reynolds Number (d.u.)
 eps_tanh = 0.0
 
-parameters = {'lambda': (lambda1, lambda2, lambda3, lambda4),  # parameters
+parameters = {'lambda': list((lambda1, lambda2, lambda3, lambda4)),  # parameters
               'eps_tanh': eps_tanh
               }
 

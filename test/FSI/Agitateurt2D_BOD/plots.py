@@ -8,8 +8,8 @@ Created on Tue Aug 22 12:14:21 2017
 
 import matplotlib.pyplot as plt
 from lasie_rom import io, pod, plots
-from _0_locations import paths, PVD_NAMES
-from _0_parameters import parameters
+from set_locations import paths, PVD_NAMES
+from set_parameters import parameters
 import numpy
 import os
 

@@ -10,8 +10,8 @@ from lasie_rom import pod, operators, misc, io, parallelization
 from lasie_rom.io import hdf
 from lasie_rom.classes import TimeSerie
 
-from _0_locations import PVD_NAMES, paths
-from _0_parameters import parameters
+from set_locations import PVD_NAMES, paths
+from set_parameters import parameters
 
 from plots import plot_relative_energy_of_eigen_values, plot_pod_basis
 

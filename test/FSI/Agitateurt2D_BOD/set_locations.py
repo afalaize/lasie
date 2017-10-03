@@ -7,9 +7,9 @@ Created on Tue Aug 22 11:42:17 2017
 """
 
 import os
-from _0_parameters import parameters
+from set_parameters import parameters
 
-base_location = '/Users/afalaize/Developement/'
+base_location = '/media/afalaize/DATA1/TESTS_FENICS/FSI/170628_FSI_2D'
 
 # --------------------------------------------------------------------------- #
 def build_resultsFolderName(parameters):
