@@ -75,7 +75,7 @@ def prepare_mesh_for_3D_vtk_rendering(mesh, shape):
     """
 
     # recover mesh shape
-    m_shape = map(int, mesh.shape)
+    m_shape = list(map(int, mesh.shape))
 
     # 1D meshes are not supported
     if m_shape[1] == 1:
@@ -100,7 +100,7 @@ def prepare_mesh_for_3D_vtk_rendering(mesh, shape):
     else:
         pass
 
-    return mesh, shape
+    return mesh, list(shape)
 
 
 def write_vtk(mesh, shape, data, path):

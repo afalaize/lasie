@@ -8,7 +8,6 @@ Created on Tue May 23 11:11:09 2017
 
 from __future__ import absolute_import
 
-import matplotlib.pyplot as plt
 import numpy as np
 from ..misc.tools import norm
 
@@ -63,6 +62,8 @@ options: dictionary (optional)
                'cbar': CBAR,
                }
     """
+
+    import matplotlib.pyplot as plt
 
     if not isinstance(A, list):
         A = [A, ]

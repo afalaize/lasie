@@ -7,7 +7,99 @@ Created on Mon Apr 24 19:16:35 2017
 """
 
 import numpy as np
-from ..config import ORDER
+import sympy as sy
+
+from ..config import ORDER, DTYPE
+
+
+def replace_pos_symbs_by_coord_vec_elements(ccode, symb='x', dim=2):
+    """
+    Replace occurences of "xi" with "x[i]" for i in range(dim) and the symbol
+    "x" specified by symb.
+
+    Parameters
+    ----------
+
+    ccode: str
+        String associated with a piece of C code.
+
+    symb: str
+        String to search for in ccode. E.g. with symb='toto', occurences of
+        'totoi' with i an integer are replaced with 'toto[i]'.
+
+    dim: int
+        The number of components of vector represented by 'symb'.
+
+    Example
+    -------
+
+    >>> ccode = 'pow(pow(x0, 2)+pow(x1, 2), 0.5)'
+    >>> replace_pos_symbs_by_coord_vec_elements(ccode, symb='x', dim=2)
+    'pow(pow(x[0], 2)+pow(x[0], 2), 0.5)'
+    """
+    if isinstance(ccode, list):
+        for i, e in enumerate(ccode):
+            ccode[i] = replace_pos_symbs_by_coord_vec_elements(e,
+                                                               symb=symb,
+                                                               dim=dim)
+    elif isinstance(ccode, str):
+        for i in range(dim):
+            old = symb+str(i)
+            new = 'x[{0}]'.format(i)
+            ccode = ccode.replace(old, new)
+    else:
+        raise TypeError('Unknown type for ccode.')
+    return ccode
+
+
+def sympyExpr2numpyFunc(expr, args, subs, vectorize=True):
+    """
+    Build a numerical evaluation of expr(args) after substitutions of subs.
+
+    Inputs
+    ------
+
+    expr : sympy expresion
+
+    args : sequence of sympy symbols for arguments
+
+    subs : dictionary {symbol: value, ...} with symbol a sympy symbol and value
+    a numeric for substition.
+
+    Return
+    ------
+
+    func : numerical function
+    Evaluation expr(args, subs) => func(*args)
+
+    """
+
+    if isinstance(expr, (list, tuple)):
+        f_list = []
+        for e in expr:
+            f_list.append(sympyExpr2numpyFunc(e, args, subs, vectorize=False))
+
+        def func(*fargs):
+            return np.array([f(*fargs) for f in f_list])
+    else:
+        if subs is None or subs == {}:
+            subsed_expr = expr
+        else:
+            subsed_expr = expr.subs(subs)
+        subsed_expr = subsed_expr.simplify()
+
+        fs = subsed_expr.free_symbols
+        diff = fs.difference(args)
+        if not len(diff) == 0:
+            raise AttributeError('missing replacement for symbol {}'.format(diff))
+
+        func = sy.lambdify(args, subsed_expr, dummify=False, modules='numpy')
+
+    if vectorize:
+        return np.vectorize(func)
+    else:
+        return func
+
 
 def vstack(M):
     """
@@ -16,7 +108,7 @@ def vstack(M):
     """
     nx, nc, m = M.shape
     return M.reshape((nx*nc, m), order=ORDER)
-    
+
 
 def unvstack(M, nc):
     """
@@ -25,78 +117,104 @@ def unvstack(M, nc):
     """
     n, m = M.shape
     assert n // nc == 0
-    
+
     nx = n // nc
     new_shape = (nx, m, nc)
     return M.reshape(new_shape, order=ORDER)
-    
+
 
 def concatenate_in_first_axis(l):
     """
-    
+
     Parameter
     ----------
     l : list of N numpy arrays
         Each element of the list must be a D dimensionnal array, and dimensions
         of every arrays must coincide.
-    
+
     Return
     ------
     a : numpy array
         Concatenation of the arrays in the list :code:`l`. Number of dimensions
         is D+1, with shape along last axis equal to the lenght of list l.
-        
+
     """
     def expand(a):
         return np.expand_dims(a, 0)
-    return np.concatenate(map(expand, l), axis=0)
+    try:
+        return np.concatenate(map(expand, l), axis=0)
+    except TypeError:
+        return np.concatenate(list(map(expand, l)), axis=0)
 
-    
+
 def concatenate_in_given_axis(l, axis=0):
-    """    
+    """
     Parameter
     ----------
     l : list of N numpy arrays
         Each element of the list must be a D dimensionnal array, and dimensions
-        of every arrays must coincide.    
+        of every arrays must coincide.
     Return
     ------
     a : numpy array
-        Concatenation of the arrays in the list :code:`l`. Number of dimensions
+        Concatenation of the arrays in the list `l`. Number of dimensions
         is D+1, with shape along last axis equal to the lenght of list l.
     """
     def expand(a):
         return np.expand_dims(a, axis)
-    return np.concatenate(map(expand, l), axis=axis)
+    try:
+        return np.concatenate(map(expand, l), axis=axis)
+    except TypeError:
+        return np.concatenate(list(map(expand, l)), axis=axis)
 
-    
+
 def norm(a):
     """
-Norm of the numpy array over the last dimension
 
-Parameter
-----------
-a : numpy array with shape (Nx, Nc)
+    Norm of the numpy array `a`over its last axis.
 
-Return
-------
-n : numpy array with shape (Nx, Nc)
-    Norm of the numpy array over the last dimension `n[i]=sqrt(sum_j a[i,j]^2)`
+    Input
+    -----
+    a : numpy array with shape (Nx, Nc)
+
+    Return
+    ------
+    n : numpy array with shape (Nx,)
+        Norm of the numpy array over the last dimension
+        `n[i]=sqrt(sum_j a[i,j]^2)`
+
     """
     if len(a.shape) == 1:
         a = a[np.newaxis, :]
     return np.sqrt(np.einsum('ij,ij->i', a, a))
 
 
-def iterarray(a, axis=0):
+def iterarray(a, ind=0):
+    """
+
+    Build a generator over the `i`-th axis of the array `a`.
+
+    Inputs
+    ------
+
+    `a` : N-dimensional numpy array
+
+    `i` : index in [0 -- N-1] of the axis of `a` for iteration
+
+    Return
+    ------
+
+    gen : a generator of arrays associated with an iterator over the `i`-th
+    axis of `a` with element j given by the (N-1)-dimensional numpy array:
+
+    b[..., x_{i-1}, x_{i+1}, ...] = a[..., x_{i-1}, j, x_{i+1}, ...]
+
+    """
     naxis = len(a.shape)
     s = [slice(None), ]*naxis
     def slice_i(i):
         slicer = s
-        slicer[axis] = i
+        slicer[ind] = i
         return slicer
-    for i in range(a.shape[axis]):
+    for i in range(a.shape[ind]):
         yield a[slice_i(i)]
-        
-    
-    
