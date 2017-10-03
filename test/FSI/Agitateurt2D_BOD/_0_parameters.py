@@ -67,8 +67,8 @@ parameters.update({'dt': 0.005,       # Time step
 # Parameters for optimizaiton algorithms
 
 parameters.update({'pen': 1e-9,        # Coefficient de penalisation volumique (~0)
-              'eps_u': 1e-4,      # Test for convergence of the solution
-              'eps_lambda': 1e-1,  # Tolerance on relaxed constraints
+              'eps_u': 5e-4,      # Test for convergence of the solution
+              'eps_lambda': 1.,  # Tolerance on relaxed constraints
               'c_lambda': 1,  # Tolerance on relaxed constraints
               })
 # --------------------------------------------------------------------------- #
@@ -82,8 +82,8 @@ parameters.update({'rho': 1.,         # masse volumique du fluide
 
 # --------------------------------------------------------------------------- #
 # POD data parameters
-TMIN = 15.      # Time for the first snapshot
-TMAX = 20.      # Time for the last snapshot
+TMIN = 25.      # Time for the first snapshot
+TMAX = 30.      # Time for the last snapshot
 
 TEXPORT = parameters['nb_export']*parameters['dt']
 
@@ -104,10 +104,10 @@ parameters['load'] = {'tmin': TMIN,       # starting time
 # POD computation parameters
 
 # Threshold error on eigen-values energy
-POD_THRESHOLD = 1e-2
+POD_THRESHOLD = 1e-3
 
 # Maximum number of modes
-POD_NMODESMAX = 25
+POD_NMODESMAX = 50
 parameters['pod'] = {'thld': POD_THRESHOLD,
                      'nmax': POD_NMODESMAX}
 

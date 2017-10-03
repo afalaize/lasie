@@ -16,7 +16,7 @@ from lasie_rom.plots import plot2d
 grid = HDFReader(paths['grid'])
 
 #d = ls.data[0]
-d = lr.io.hdf.HDFReader(paths['basis'][0])
+d = lr.io.hdf.HDFReader(paths['basis'][1])
 d.openHdfFile()
 grid.openHdfFile()
 shape = list(map(int, grid.shape[:, 0]))

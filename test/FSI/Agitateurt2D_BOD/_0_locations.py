@@ -9,7 +9,7 @@ Created on Tue Aug 22 11:42:17 2017
 import os
 from _0_parameters import parameters
 
-base_location = '/media/afalaize/DATA1/TESTS_FENICS/FSI/170628_FSI_2D'
+base_location = '/Users/afalaize/Developement/'
 
 # --------------------------------------------------------------------------- #
 def build_resultsFolderName(parameters):
@@ -93,6 +93,10 @@ ORIGINAL_COEFFS_HDF_PATH = os.path.join(MAIN_FOLDER, ORIGINAL_COEFFS_HDF_NAME+'.
 OUT_FOLDER = os.path.join(MAIN_FOLDER, 'ROM_Results')
 
 
+# folder where to save the interpolators
+INTERPOLATOR_HDF_PATH = os.path.join(MAIN_FOLDER, 'interpolator.hdf')
+
+
 paths = {'pvd': PVD_PATH,
          'hdf': HDF_FOLDERS,
          'ihdf': INTERP_HDF_FOLDERS,
@@ -102,7 +106,8 @@ paths = {'pvd': PVD_PATH,
          'matrices': ROM_MATRICES_HDF_PATH,
          'coeffs': ORIGINAL_COEFFS_HDF_PATH,
          'results': MAIN_FOLDER,
-         'output': OUT_FOLDER
+         'output': OUT_FOLDER,
+         'interpolator' : INTERPOLATOR_HDF_PATH
          }
 
 

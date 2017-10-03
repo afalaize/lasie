@@ -76,13 +76,17 @@ hdf_paths = {'basis': paths['basis'][0],
              'matrices': paths['matrices'],
              'original_coeffs': paths['coeffs'],
              'meanfluc':  paths['meanfluc'][0],
-             'grid': paths['grid']
+             'grid': paths['grid'],
+             'interpolator': paths['interpolator']
              }
 
-rom_ns = rom.fsi_relaxed_velocity.ReducedOrderModel(hdf_paths,
+rom_ns = rom.fsi_relaxed_velocity_BOD.ReducedOrderModel(hdf_paths,
                                                     parameters,
                                                     levelset_func,
                                                     velocity_func)
+rom_ns.open_hdfs()
+
+rom_ns.build_gamma_interpolator()
 
 # instanciate original TimeSerie
 ts = TimeSerie(paths['ihdf'][0])
@@ -108,10 +112,9 @@ U_fom = ts.concatenate(dataname)
 # Simulation time steps run from 0 to TEND (s)
 T_rom = U_fom.shape[-1]*parameters['rom']['dt']
 
-rom_ns.open_hdfs()
 angle = parameters['angular_vel']*parameters['load']['tmin'] % 2*np.pi
 
-rom_ns.run(dt=parameters['rom']['dt'], tend=T_rom)
+rom_ns.run(dt=parameters['rom']['dt'], tend=T_rom/2)
 #rom_ns.run(dt=parameters['rom']['dt'], tend=T_rom, angle=angle)
 
 # --------------------------------------------------------------------------- #
@@ -139,6 +142,23 @@ ls.openHdfFile()
 ls_mean = ls.mean[:]
 ls_fluc = ls.fluc[:]
 ls.closeHdfFile()
+
+
+#%%
+def myplot(i):
+    import matplotlib.pyplot as plt
+    plt.close('all')
+    plt.plot(rom_ns.times[:len(rom_ns.c_rom(i))-1], rom_ns.c_fom(i)[:len(rom_ns.c_rom(i))-1], '-r', label='fom')
+    plt.plot(rom_ns.times[:len(rom_ns.c_rom(i))-1], rom_ns.c_rom(i)[:len(rom_ns.c_rom(i))-1], '.b', label='rom')
+    plt.xlabel('time $t$ (s)')
+    plt.ylabel('$\\alpha_%i(t)$' % i)
+    plt.legend(loc=0)
+    plt.title('Temporal coefficient $\\alpha_%i(t)$' % i)
+    plt.savefig(os.path.join(paths['results'], 'rom_coeffs_%i_BOD' % i))
+    plt.show()
+#%%
+for n in range(10):
+    myplot(n)
 
 
 def write_vtu(i):
@@ -171,20 +191,4 @@ def write_vtu(i):
 parallelization.map(write_vtu, range(U_rom.shape[-1]-1))
 
 #%%
-def myplot(i):
-    import matplotlib.pyplot as plt
-    plt.close('all')
-    plt.plot(rom_ns.times[:len(rom_ns.c_rom(i))-1], rom_ns.c_rom(i)[:len(rom_ns.c_rom(i))-1], '-r', label='rom')
-    plt.plot(rom_ns.times[:len(rom_ns.c_rom(i))-1], rom_ns.c_fom(i)[:len(rom_ns.c_rom(i))-1], '.b', label='fom')
-    plt.xlabel('time $t$ (s)')
-    plt.ylabel('$\\alpha_%i(t)$' % i)
-    plt.legend(loc=0)
-    plt.title('Temporal coefficient $\\alpha_%i(t)$' % i)
-    plt.savefig(os.path.join(paths['results'], 'rom_coeffs_%i' % i))
-    plt.show()
-
-for n in range(10):
-    myplot(n)
-
-#%%
-rom_ns.close_hdfs()
+#rom_ns.close_hdfs()
